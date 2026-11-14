@@ -770,16 +770,16 @@ body.hunt-on { overflow: hidden; }
 @media (max-width: 820px) { .hn-frame { width: 100%; max-width: 520px; } .hn-ep .hn-dots i { width: 14px; } }
 
 /* cartão "próxima missão" na vista do planeta */
-.ef-next { position: absolute; left: 20px; bottom: 20px; width: min(320px, calc(100vw - 40px)); padding: 16px 16px 14px; border-radius: 16px;
-  background: rgba(10, 12, 18, 0.82); backdrop-filter: blur(12px); border: 1px solid rgba(255, 209, 102, 0.35); box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+.ef-next { position: absolute; left: 28px; bottom: 28px; width: min(420px, calc(100vw - 56px)); padding: 24px 24px 22px; border-radius: 20px;
+  background: rgba(10, 12, 18, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 209, 102, 0.4); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
   opacity: 0; transform: translateY(10px); transition: opacity 0.35s 0.35s, transform 0.35s 0.35s; z-index: 2; }
 .earth-full.open .ef-next { opacity: 1; transform: none; }
-.ef-next .label { color: var(--gold); margin: 0 0 4px; }
-.ef-next h3 { font-size: 17px; text-transform: none; letter-spacing: -0.01em; color: var(--text); margin: 0 0 4px; display: block; }
-.ef-next p.small { margin: 0 0 10px; color: var(--muted); }
-.ef-next-bar { height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.1); overflow: hidden; margin-bottom: 12px; }
+.ef-next .label { color: var(--gold); margin: 0 0 8px; font-size: 12px; }
+.ef-next h3 { font-size: 24px; line-height: 1.2; text-transform: none; letter-spacing: -0.01em; color: var(--text); margin: 0 0 8px; display: block; }
+.ef-next p.small { margin: 0 0 16px; color: var(--muted); font-size: 15px; line-height: 1.45; }
+.ef-next-bar { height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.1); overflow: hidden; margin-bottom: 18px; }
 .ef-next-bar i { display: block; height: 100%; background: var(--gold); }
-.ef-next .row { display: flex; gap: 8px; flex-wrap: wrap; }
-.ef-next .primary { padding: 8px 18px; border-radius: 999px; }
-@media (max-width: 640px) { .ef-next { left: 12px; right: 12px; bottom: 12px; width: auto; } .earth-full .ef-hint { display: none; } }
+.ef-next .row { display: flex; gap: 10px; flex-wrap: wrap; }
+.ef-next button { font-size: 16px; padding: 12px 22px; border-radius: 999px; }
+@media (max-width: 640px) { .ef-next { left: 12px; right: 12px; bottom: 12px; width: auto; padding: 18px; } .ef-next h3 { font-size: 20px; } .earth-full .ef-hint { display: none; } }
 @media (prefers-reduced-motion: reduce) { .ef-next { transition: none; } }
