@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SPHEREx Blink: veja o céu se mexer</title>
+  <meta name="description" content="Animações das imagens do telescópio SPHEREx (NASA) ao longo do tempo, para qualquer pessoa encontrar objetos que se movem no céu.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+  <!-- endereço sem região, aba ou modo: abre na tela inicial -->
+  <script>if (!location.search.replace(/^\?/, '')) document.documentElement.dataset.intro = '1';</script>
+</head>
+<body>
+<!-- ============================================================ TELA INICIAL -->
+<section id="intro" class="intro" aria-label="Início">
+  <div id="intro-scene" class="intro-scene" aria-hidden="true"></div>
+  <header class="intro-top">
+    <span></span>
+    <button type="button" class="ghost" data-intro="credits">Créditos</button>
+  </header>
+  <div class="intro-copy">
+    <p class="kicker">NASA SPHEREx · dados públicos DR1 e QR3</p>
+    <h1>SPHEREx<br><span>Blink</span></h1>
+    <p class="lede"><b>Veja o céu se mexer.</b> O telescópio SPHEREx fotografa o céu inteiro em 102 cores, duas vezes por ano. Compare as passagens e encontre o que trocou de lugar: estrelas próximas, anãs marrons e, quem sabe, algo que ainda não tem nome.</p>
+    <div class="intro-actions">
+      <button type="button" class="primary big" data-intro="explore">Explorar o céu <span aria-hidden="true">→</span></button>
+      <button type="button" class="ghost big" data-intro="queue">Classificar candidatos</button>
+    </div>
+    <dl class="facts">
+      <div><dt>102</dt><dd>comprimentos de onda<br>de 0,75 a 5,0 µm</dd></div>
+      <div><dt>6 meses</dt><dd>para cobrir<br>o céu inteiro</dd></div>
+      <div><dt>~700 km</dt><dd>de altura, em<br>órbita polar</dd></div>
+    </dl>
+  </div>
+  <p class="intro-note">Ilustração: modelo 3D aproximado do SPHEREx. Terra: NASA Blue Marble e Black Marble. Estrelas: posições reais do Yale BSC.</p>
+</section>
+
+<!-- panorama 360° do céu real, atrás de tudo no modo Explorar -->
+<div id="sky" aria-label="Panorama 360° do céu: arraste para olhar em volta, role para zoom, clique para escolher um ponto"></div>
+<!-- a Terra em tamanho real vista de 700 km e o SPHEREx ao lado, por cima do céu afastado; não recebe cliques -->
+<div id="globe" class="globe" aria-hidden="true"></div>
+<div id="sky-orders" class="sky-orders" aria-label="Ordens da Central no céu"></div>
+
+<header class="top">
+  <a class="brand" href="./"><span class="dot"></span>SPHEREx <b>Blink</b></a>
+  <form id="search" class="command" role="search">
+    <svg class="ico" viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg>
+    <input id="q" type="text" autocomplete="off" spellcheck="false" aria-label="Nome ou coordenada"
+           placeholder="Buscar nome ou coordenada">
+    <kbd class="kbd" title="Atalho: tecla /">/</kbd>
+    <button type="submit" class="go" title="Buscar (Enter)" aria-label="Buscar">↵</button>
+  </form>
+  <nav class="tabs" role="tablist">
+    <button data-tab="explore" class="on" role="tab">Céu</button>
+    <button data-tab="queue" role="tab">Fila <span id="queue-count" class="pill"></span></button>
+    <button data-tab="missions" role="tab">Missões <span id="mission-dot" class="pill" hidden>1</span></button>
+    <button data-tab="wall" role="tab">Mural</button>
+  </nav>
+  <div class="top-right">
+    <button id="credits-btn" class="ghost" title="Fontes dos dados e agradecimentos">Créditos</button>
+    <button id="nick-btn" class="ghost" title="Seu apelido aparece no crédito das classificações"></button>
+  </div>
+</header>
+<p id="status" class="status" role="status"></p>
+
+<!-- ============================================================ EXPLORAR -->
+<main id="tab-explore" class="tab">
+
+  <!-- exemplos: só os nomes, sobre o céu -->
+  <nav class="targets" id="targets-card" aria-label="Exemplos prontos">
+    <p class="label">Exemplos</p>
+    <div id="targets" class="list"></div>
+    <section id="regions-panel" hidden><div id="regions" class="list compact"></div></section>
+  </nav>
+
+  <!-- miniatura da Terra: gira junto com a sua vista (giroscópio); clicar abre a rede de satélites -->
+  <button id="mini-earth" class="mini-earth" hidden title="Onde você está. A Terra gira junto com a sua vista. Clique para abrir o planeta.">
+    <span class="mini-canvas"></span>
+    <span class="mini-tag"><i></i><b data-online>1</b> online<span data-sim></span></span>
+  </button>
+  <p id="sky-read" class="hud hud-left mono">Arraste para olhar em volta · role para zoom · clique para escolher</p>
+  <div class="hud hud-right">
+    <label id="sky-lambda" class="lambda" hidden title="Comprimento de onda do SPHEREx: arraste pelos 102 canais">
+      <input id="lambda" type="range" min="0" max="101" step="1" value="40" aria-label="Canal do SPHEREx">
+      <span id="lambda-read" class="mono"></span>
+    </label>
+    <div class="seg" id="sky-survey" aria-label="Imagem de fundo">
+      <button data-survey="dss" class="on" title="Céu em luz visível (Digitized Sky Survey)">Visível</button>
+      <button data-survey="twomass" title="Céu em infravermelho próximo (2MASS)">IV</button>
+      <button data-survey="spherex" title="O céu inteiro visto pelo próprio SPHEREx (DR1), em 102 comprimentos de onda">SPHEREx</button>
+    </div>
+    <div class="seg" id="sky-layers">
+      <button data-layer="earth" title="A Terra em tamanho real, vista de 700 km, com o SPHEREx ao lado">Terra</button>
+      <button data-layer="all" class="on" title="Grade, eclíptica e plano da Via Láctea">Linhas</button>
+    </div>
+    <div class="seg zoom">
+      <button id="z-out" title="Afastar">−</button>
+      <button id="z-reset" title="Céu inteiro">○</button>
+      <button id="z-in" title="Aproximar">+</button>
+    </div>
+  </div>
+
+  <!-- ponto escolhido no panorama -->
+  <div id="sky-pop" class="pop" hidden>
+    <p class="mono" id="sky-pop-coord"></p>
+    <div class="row"><button id="sky-pop-go" class="primary">Ver imagens aqui</button><button id="sky-pop-x" class="ghost" title="Fechar">✕</button></div>
+  </div>
+
+  <button id="work-open" class="float resume" hidden>Voltar à região</button>
+
+  <!-- área de trabalho: gaveta à direita, o céu continua visível à esquerda -->
+  <!-- região aberta: o recorte do SPHEREx fica encaixado no próprio céu, na posição e escala certas;
+       o resto do céu continua visível em volta. Controles flutuam em cima e embaixo. -->
+  <!-- faixa da missão ativa (modo missões) -->
+  <aside id="mission-bar" class="mission-bar" hidden aria-label="Missão ativa"></aside>
+  <section class="drawer" id="work" hidden>
+    <div class="drawer-head">
+      <button id="work-close" class="ghost icon" title="Voltar ao céu (Esc)">←</button>
+      <div class="drawer-title"><b id="work-title">Região</b><span id="work-sub" class="mono muted"></span></div>
+      <select id="band" title="Banda do SPHEREx"></select>
+      <button type="button" id="details-btn" class="ghost" title="Sobre a região, medições e dados do quadro">Detalhes</button>
+      <button type="button" id="share" class="ghost" title="Copia o endereço desta visão">Link</button>
+    </div>
+    <div id="status-slot" class="status-slot"></div>
+        <div class="canvas-wrap">
+          <canvas id="view" aria-label="Imagem do SPHEREx"></canvas>
+          <div id="loading" class="loading" hidden><div class="bar"><i></i></div><span></span></div>
+        </div>
+    <div class="dock">
+        <div class="toolbar">
+          <div class="seg" id="view-mode">
+            <button data-v="anim" class="on" title="Mostra os quadros em sequência">Animação</button>
+            <button data-v="blink" title="Alterna entre dois quadros">Blink</button>
+            <button data-v="diff" title="Quadro A menos quadro B">Diferença</button>
+            <button data-v="sum" title="Todas as exposições somadas: revela objetos fracos">Soma</button>
+            <button data-v="rgb" title="Três bandas viram vermelho, verde e azul">Cor</button>
+          </div>
+          <span id="ab-row" class="ab" hidden>
+            <label>A <select id="sel-a"></select></label>
+            <label>B <select id="sel-b"></select></label>
+          </span>
+        </div>
+        <div class="player">
+          <button id="prev" title="Quadro anterior (←)">‹</button>
+          <button id="play" class="primary" title="Tocar / pausar (espaço)">▶</button>
+          <button id="next" title="Próximo quadro (→)">›</button>
+          <input id="slider" type="range" min="0" max="0" value="0" aria-label="Quadro">
+          <span id="counter" class="mono"></span>
+        </div>
+        <div id="timeline" class="timeline" title="Cada risco é uma exposição; clique para ir até ela"></div>
+        <p id="view-help" class="hint"></p>
+        <div class="more">
+        <details class="tune">
+          <summary>Ajustes</summary>
+          <div class="display">
+            <div class="seg" id="frame-mode">
+              <button data-m="epochs" class="on" title="Uma imagem limpa por passagem do telescópio">Épocas</button>
+              <button data-m="exposures" title="Cada exposição individual">Exposições</button>
+            </div>
+            <select id="fps" title="Velocidade">
+              <option value="0.7">lento</option><option value="2" selected>normal</option>
+              <option value="5">rápido</option><option value="12">muito rápido</option>
+            </select>
+            <select id="fov" title="Tamanho do campo">
+              <option value="2">campo 2′</option><option value="4">campo 4′</option><option value="6" selected>campo 6′</option>
+              <option value="10">campo 10′</option><option value="15">campo 15′</option><option value="20">campo 20′</option><option value="30">campo 30′</option>
+            </select>
+            <select id="cmap" title="Cores"><option value="cinza">cinza</option><option value="negativo">negativo</option><option value="calor">calor</option></select>
+            <label class="grow">Brilho <input id="stretch" type="range" min="0" max="1" step="0.01" value="0.5"></label>
+          </div>
+          <div class="display">
+            <label><input type="checkbox" id="ck-mira" checked> Mira</label>
+            <label><input type="checkbox" id="ck-smooth" checked> Suavizar</label>
+            <label title="Pinta de vermelho os pixels descartados (raios cósmicos, saturação, defeitos)"><input type="checkbox" id="ck-flags"> Sinalizados</label>
+            <label title="Estrelas do catálogo Gaia DR3"><input type="checkbox" id="ck-gaia"> <i class="sw gaia"></i>Gaia</label>
+            <label title="Fontes do catálogo CatWISE2020"><input type="checkbox" id="ck-catwise"> <i class="sw catwise"></i>CatWISE</label>
+          </div>
+          <p class="hint">Role sobre a imagem para aproximar o céu, clique em um objeto para medir. Mancha creme lisa: estrela saturada. Mancha vinho: pixel descartado.</p>
+        </details>
+        </div>
+    </div>
+      <aside class="inspector">
+        <div class="itabs" role="tablist">
+          <button data-pane="about" class="on" role="tab">Região</button>
+          <button data-pane="measure" role="tab">Medição</button>
+          <button data-pane="frame" role="tab">Quadro</button>
+        </div>
+        <div class="pane" id="pane-about"><div id="about"></div></div>
+        <div class="pane" id="pane-measure" hidden>
+          <div id="pick"><p class="muted">Clique em um objeto na imagem para medir se ele se moveu, ver a curva de luz e o espectro.</p></div>
+        </div>
+        <div class="pane" id="pane-frame" hidden><div id="frame-info" class="kv"></div></div>
+      </aside>
+  </section>
+</main>
+
+<!-- ============================================================ FILA -->
+<main id="tab-queue" class="tab page" hidden>
+  <section class="hero">
+    <p class="label">Classificação</p>
+    <h1>Fila de candidatos</h1>
+    <p>A máquina comparou as épocas, encontrou o que mudou e descartou o que os catálogos já explicam.
+      Agora é com você: olhe cada candidato e diga o que vê.</p>
+    <div class="progress-wrap"><div id="q-progress" class="progress" aria-hidden="true"></div><span id="q-progress-read" class="mono muted small"></span></div>
+  </section>
+  <section class="work" id="queue-work">
+    <div class="stage">
+      <div class="toolbar">
+        <div class="seg" id="q-mode">
+          <button data-v="blink" class="on">Blink</button><button data-v="diff">Diferença</button><button data-v="anim">Exposições</button>
+        </div>
+      </div>
+      <div class="canvas-wrap"><canvas id="qview"></canvas></div>
+      <div class="vote">
+        <button data-label="move" class="v-move"><b>1</b> Se move</button>
+        <button data-label="nao_move" class="v-stay"><b>2</b> Não se move</button>
+        <button data-label="defeito" class="v-bad"><b>3</b> É defeito</button>
+        <button id="q-skip" class="ghost">Pular →</button>
+      </div>
+    </div>
+    <aside class="inspector flat">
+      <div class="panel" id="q-info"></div>
+      <div class="panel" id="q-result" hidden></div>
+      <div class="panel">
+        <h3>Como decidir</h3>
+        <ul class="tips">
+          <li><b>Se move:</b> o ponto troca de lugar entre as épocas. Na diferença aparece um par azul e laranja lado a lado.</li>
+          <li><b>Não se move:</b> o ponto fica no mesmo lugar e só muda de brilho, ou nada muda.</li>
+          <li><b>É defeito:</b> risco, pixel isolado, mancha junto de estrela muito brilhante ou borda da imagem.</li>
+        </ul>
+      </div>
+      <div class="panel" id="q-pipeline"></div>
+    </aside>
+  </section>
+</main>
+
+<!-- ============================================================ MURAL -->
+<main id="tab-missions" class="tab page" hidden>
+  <section class="hero">
+    <p class="label">Modo missões</p>
+    <h1>Central de Comando</h1>
+    <p>Ordens com imagens reais do SPHEREx. Satélite e falas são ilustrativos; as medidas, nunca.</p>
+    <p id="cmd-offline" class="status" hidden>Sem servidor: o progresso fica só neste navegador e a missão de consenso não está disponível.</p>
+  </section>
+  <div id="cmd-status" class="cmd-status"></div>
+  <div class="cmd-console">
+    <section class="panel comms" aria-label="Canal com a Central">
+      <h3>Canal <span class="tag">ilustrativo</span></h3>
+      <div id="cmd-comms" class="comms-log" role="log" aria-label="Mensagens do canal"></div>
+    </section>
+    <div class="cmd-console-side">
+      <section id="cmd-order" class="panel cmd-order" aria-label="Ordem atual"></section>
+      <section id="cmd-telemetry" class="panel telemetry" aria-label="Telemetria"></section>
+    </div>
+  </div>
+  <h2 class="cmd-h2">Ordens</h2>
+  <div class="cmd-grid">
+    <div id="cmd-acts"></div>
+    <aside class="cmd-side">
+      <div class="panel hangar">
+        <h3>Hangar <span class="tag">ilustrativo</span></h3>
+        <div id="hangar-preview"></div>
+        <div id="hangar-shop"></div>
+        <p class="muted small">Só visual.</p>
+      </div>
+      <div class="panel"><h3>Diário</h3><div id="cmd-log"></div></div>
+    </aside>
+  </div>
+</main>
+
+<dialog id="report-dialog" aria-labelledby="rp-title"><div class="rp-body"></div></dialog>
+<div id="cmd-live" class="sr-only" aria-live="polite"></div>
+
+<main id="tab-wall" class="tab page" hidden>
+  <section class="hero">
+    <p class="label">Comunidade</p>
+    <h1>Mural</h1>
+    <p>Quem classificou, o que já tem consenso e as marcações feitas no modo Explorar.</p>
+    <div id="wall-kpis" class="kpis"></div>
+  </section>
+  <section class="wall">
+    <div class="panel"><h3>Candidatos</h3><div id="wall-cands"></div></div>
+    <div class="panel"><h3>Participantes</h3><div id="wall-rank"></div></div>
+    <div class="panel"><h3>Ranking de missões (XP)</h3><div id="wall-xp"></div></div>
+    <div class="panel wide"><h3>Marcações <a id="csv" class="ghost btn" href="api/marks.csv">Exportar CSV</a></h3><div id="wall-marks"></div></div>
+  </section>
+</main>
+
+<div id="earth-full" class="earth-full" hidden role="dialog" aria-modal="true" tabindex="-1"
+     aria-label="A Terra com você e os satélites online. Arraste para girar, role para aproximar. Clique fora do planeta ou Esc para sair.">
+  <p class="ef-hint">Clique fora do planeta para sair</p>
+</div>
+
+<dialog id="credits-dialog" aria-labelledby="cr-title">
+  <div class="cr-head">
+    <h2 id="cr-title">Fontes e créditos</h2>
+    <form method="dialog"><button class="ghost" title="Fechar (Esc)" aria-label="Fechar">✕</button></form>
+  </div>
+  <div class="cr-body">
+    <p class="muted">Todas as imagens são dados reais e públicos. Nada aqui é simulado. Protótipo feito para o NASA Space Apps Challenge 2026, desafio "Planet X and SPHEREx".</p>
+    <dl>
+      <dt><a href="https://irsa.ipac.caltech.edu/Missions/spherex.html" target="_blank" rel="noopener">SPHEREx</a>: imagens espectrais DR1 e QR3 e cubo de céu inteiro DR1</dt>
+      <dd>NASA / JPL / Caltech. DOI <a href="https://doi.org/10.26131/IRSA678" target="_blank" rel="noopener">10.26131/IRSA678</a> (imagens) e <a href="https://doi.org/10.26131/IRSA679" target="_blank" rel="noopener">10.26131/IRSA679</a> (cubo). Referências: Bock et al. 2026 (missão), Akeson et al. 2026 (processamento).
+        <q>This publication makes use of data products from the Spectro-Photometer for the History of the Universe, Epoch of Reionization and Ices Explorer (SPHEREx), which is a joint project of the Jet Propulsion Laboratory and the California Institute of Technology, and is funded by the National Aeronautics and Space Administration.</q></dd>
+      <dt><a href="https://irsa.ipac.caltech.edu/" target="_blank" rel="noopener">NASA/IPAC Infrared Science Archive (IRSA)</a></dt>
+      <dd>Índice SIA, recortes, espelho na AWS e os mapas HiPS do panorama.
+        <q>This research has made use of the NASA/IPAC Infrared Science Archive, which is funded by the National Aeronautics and Space Administration and operated by the California Institute of Technology.</q></dd>
+      <dt>2MASS: céu em infravermelho e painel de referência</dt>
+      <dd>Skrutskie et al. 2006, AJ 131, 1163.
+        <q>This publication makes use of data products from the Two Micron All Sky Survey, which is a joint project of the University of Massachusetts and the Infrared Processing and Analysis Center/California Institute of Technology, funded by the National Aeronautics and Space Administration and the National Science Foundation.</q></dd>
+      <dt>Digitized Sky Survey (DSS2 colorido): céu em luz visível</dt>
+      <dd>Digitized Sky Survey, STScI/NASA. Cores e HiPS pelo CDS (CNRS/Unistra). Lasker et al. 1996.
+        <q>The Digitized Sky Surveys were produced at the Space Telescope Science Institute under U.S. Government grant NAG W-2166. The images of these surveys are based on photographic data obtained using the Oschin Schmidt Telescope on Palomar Mountain and the UK Schmidt Telescope.</q></dd>
+      <dt>Gaia DR3: camada de estrelas conhecidas</dt>
+      <dd>ESA / DPAC, via VizieR (I/355).
+        <q>This work presents results from the European Space Agency (ESA) space mission Gaia. Gaia data are being processed by the Gaia Data Processing and Analysis Consortium (DPAC). Funding for the DPAC is provided by national institutions, in particular the institutions participating in the Gaia MultiLateral Agreement (MLA).</q></dd>
+      <dt>CatWISE2020: camada de fontes do WISE</dt>
+      <dd>Marocco et al. 2021, ApJS 253, 8, via VizieR (II/365).</dd>
+      <dt>SIMBAD, Sesame e VizieR (CDS, Strasbourg)</dt>
+      <dd>Nomes, posições e movimento próprio; acesso aos catálogos. Wenger et al. 2000; Ochsenbein et al. 2000, DOI 10.26093/cds/vizier.
+        <q>This research has made use of the SIMBAD database and the VizieR catalogue access tool, operated at CDS, Strasbourg, France.</q></dd>
+      <dt>Yale Bright Star Catalogue</dt>
+      <dd>Hoffleit &amp; Warren 1991 (V/50), estrelas do mapa plano de reserva.</dd>
+      <dt>Aladin Lite 3.8.2</dt>
+      <dd>CDS, Boch &amp; Fernique 2014. Licença GPL-3. Visualizador do panorama 360° e do céu de referência.</dd>
+      <dt>Tela inicial e aparência</dt>
+      <dd>Terra: NASA Blue Marble e Black Marble (NASA Earth Observatory, domínio público), servidas pelo pacote three-globe; detalhe da região de perto com Blue Marble Next Generation via NASA GIBS (Global Imagery Browse Services). Lua: mosaico LROC WAC (NASA/GSFC/Arizona State University) via USGS Astrogeology. Cena 3D com three.js (MIT). O SPHEREx em 3D é uma ilustração aproximada. Fontes Inter e JetBrains Mono (SIL OFL 1.1).</dd>
+    </dl>
+  </div>
+</dialog>
+
+<dialog id="nick-dialog">
+  <form method="dialog">
+    <h3>Como quer ser creditado?</h3>
+    <p class="muted">Sem cadastro e sem senha. O apelido fica neste navegador e acompanha suas classificações.</p>
+    <input id="nick-input" maxlength="24" placeholder="seu apelido" required>
+    <div class="row end"><button value="cancel" class="ghost" formnovalidate>Cancelar</button><button value="ok" class="primary">Salvar</button></div>
+  </form>
+</dialog>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+data/index/
+data/votes.sqlite
+data/*.log
+# O cache dos alvos de teste (data/cache, ~350 MB) fica fora do repositório.
+# Gere com: python -m backend.pregen
+data/cache/
+.claude/
+*.sqlite-journal

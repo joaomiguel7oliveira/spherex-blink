@@ -1,0 +1,303 @@
+{
+ "generated": "2026-11-14",
+ "targets": [
+  {
+   "id": "barnard",
+   "title": "Estrela de Barnard",
+   "kind": "Estrela próxima, alto movimento próprio",
+   "legend": "A segunda estrela mais próxima do Sol (6 anos-luz) é também a que mais rápido cruza o nosso céu: cerca de 10 segundos de arco por ano, para o norte. Ela satura o detector (mancha lisa no centro), mas dá para ver a mancha subir de uma época para a outra enquanto as estrelas de fundo ficam paradas.",
+   "band": "D4",
+   "fov": 6.0,
+   "ra": 269.4463,
+   "dec": 4.7682,
+   "simbad": {
+    "query": "Barnard's star",
+    "name": "NAME Barnard's star",
+    "otype": "BY*",
+    "ra_j2000": 269.4520769586187,
+    "dec_j2000": 4.69336496657667,
+    "pmra": -801.551,
+    "pmde": 10362.394,
+    "ra": 269.446269,
+    "dec": 4.768204,
+    "epoch": 2026.0,
+    "source": "SIMBAD via Sesame (CDS)"
+   },
+   "markers": [
+    {
+     "ra": 269.4520769586187,
+     "dec": 4.69336496657667,
+     "label": "posição em 2000"
+    }
+   ],
+   "bands": {
+    "D1": {
+     "key": "r269.4463_d+4.7682_f6.0_D1",
+     "n": 60,
+     "epochs": 3
+    },
+    "D2": {
+     "key": "r269.4463_d+4.7682_f6.0_D2",
+     "n": 61,
+     "epochs": 3
+    },
+    "D3": {
+     "key": "r269.4463_d+4.7682_f6.0_D3",
+     "n": 57,
+     "epochs": 3
+    },
+    "D4": {
+     "key": "r269.4463_d+4.7682_f6.0_D4",
+     "n": 57,
+     "epochs": 3
+    },
+    "D5": {
+     "key": "r269.4463_d+4.7682_f6.0_D5",
+     "n": 61,
+     "epochs": 3
+    },
+    "D6": {
+     "key": "r269.4463_d+4.7682_f6.0_D6",
+     "n": 58,
+     "epochs": 3
+    }
+   }
+  },
+  {
+   "id": "epsindb",
+   "title": "Epsilon Indi B",
+   "kind": "Par de anãs marrons orbitando uma estrela",
+   "legend": "Duas anãs marrons (objetos entre planeta e estrela) que orbitam a estrela Epsilon Indi A, a 12 anos-luz. O par se desloca quase 5 segundos de arco por ano junto com a estrela. No SPHEREx as duas aparecem fundidas em um único ponto.",
+   "band": "D2",
+   "fov": 6.0,
+   "ra": 331.0966,
+   "dec": -56.8007,
+   "simbad": {
+    "query": "eps Ind B",
+    "name": "* eps Ind B",
+    "otype": "BD*",
+    "ra_j2000": 331.04414658852124,
+    "dec_j2000": -56.78284419511611,
+    "pmra": 3981.977,
+    "pmde": -2466.832,
+    "ra": 331.096644,
+    "dec": -56.80066,
+    "epoch": 2026.0,
+    "source": "SIMBAD via Sesame (CDS)"
+   },
+   "markers": [
+    {
+     "ra": 331.04414658852124,
+     "dec": -56.78284419511611,
+     "label": "posição em 2000"
+    }
+   ],
+   "bands": {
+    "D1": {
+     "key": "r331.0966_d-56.8007_f6.0_D1",
+     "n": 46,
+     "epochs": 3
+    },
+    "D2": {
+     "key": "r331.0966_d-56.8007_f6.0_D2",
+     "n": 93,
+     "epochs": 4
+    },
+    "D3": {
+     "key": "r331.0966_d-56.8007_f6.0_D3",
+     "n": 93,
+     "epochs": 4
+    },
+    "D4": {
+     "key": "r331.0966_d-56.8007_f6.0_D4",
+     "n": 44,
+     "epochs": 3
+    },
+    "D5": {
+     "key": "r331.0966_d-56.8007_f6.0_D5",
+     "n": 84,
+     "epochs": 4
+    },
+    "D6": {
+     "key": "r331.0966_d-56.8007_f6.0_D6",
+     "n": 93,
+     "epochs": 4
+    }
+   }
+  },
+  {
+   "id": "wise0855",
+   "title": "WISE 0855",
+   "kind": "Anã marrom rápida e muito fria",
+   "legend": "A anã marrom mais fria conhecida (cerca de -20 °C), a 7 anos-luz. Só brilha no infravermelho perto de 5 micrômetros, por isso use a banda D6. Ela anda 8 segundos de arco por ano para oeste: ligue a visão Diferença para ver o par claro-escuro que denuncia o movimento.",
+   "band": "D6",
+   "fov": 6.0,
+   "ra": 133.7598,
+   "dec": -7.2422,
+   "simbad": {
+    "query": "WISE J085510.83-071442.5",
+    "name": "WISEA J085510.74-071442.5",
+    "otype": "BD*",
+    "ra_j2000": 133.81890825,
+    "dec_j2000": -7.247048,
+    "pmra": -8123.7,
+    "pmde": 673.2,
+    "ra": 133.759765,
+    "dec": -7.242186,
+    "epoch": 2026.0,
+    "source": "SIMBAD via Sesame (CDS)"
+   },
+   "markers": [
+    {
+     "ra": 133.795129,
+     "dec": -7.245147,
+     "label": "posição do enunciado (≈2010)"
+    }
+   ],
+   "bands": {
+    "D1": {
+     "key": "r133.7598_d-7.2422_f6.0_D1",
+     "n": 36,
+     "epochs": 3
+    },
+    "D2": {
+     "key": "r133.7598_d-7.2422_f6.0_D2",
+     "n": 48,
+     "epochs": 3
+    },
+    "D3": {
+     "key": "r133.7598_d-7.2422_f6.0_D3",
+     "n": 44,
+     "epochs": 3
+    },
+    "D4": {
+     "key": "r133.7598_d-7.2422_f6.0_D4",
+     "n": 35,
+     "epochs": 3
+    },
+    "D5": {
+     "key": "r133.7598_d-7.2422_f6.0_D5",
+     "n": 48,
+     "epochs": 3
+    },
+    "D6": {
+     "key": "r133.7598_d-7.2422_f6.0_D6",
+     "n": 45,
+     "epochs": 3
+    }
+   }
+  },
+  {
+   "id": "rwaur",
+   "title": "RW Aurigae",
+   "kind": "Estrela jovem variável",
+   "legend": "Um sistema jovem cujo brilho muda de forma irregular, às vezes escurecido por nuvens de poeira do próprio disco. Aqui nada se move: o que muda é o brilho, mais ainda perto de 5 micrômetros (banda D6), onde brilha a poeira quente. Clique na estrela para ver a curva de luz e o espectro em cada época.",
+   "band": "D6",
+   "fov": 6.0,
+   "ra": 76.9566,
+   "dec": 30.4013,
+   "simbad": {
+    "query": "RW Aur",
+    "name": "V* RW Aur",
+    "otype": "TT*",
+    "ra_j2000": 76.95652603458,
+    "dec_j2000": 30.40143817389,
+    "pmra": 7.23,
+    "pmde": -20.33,
+    "ra": 76.956587,
+    "dec": 30.401291,
+    "epoch": 2026.0,
+    "source": "SIMBAD via Sesame (CDS)"
+   },
+   "markers": [],
+   "bands": {
+    "D1": {
+     "key": "r76.9566_d+30.4013_f6.0_D1",
+     "n": 56,
+     "epochs": 3
+    },
+    "D2": {
+     "key": "r76.9566_d+30.4013_f6.0_D2",
+     "n": 54,
+     "epochs": 3
+    },
+    "D3": {
+     "key": "r76.9566_d+30.4013_f6.0_D3",
+     "n": 53,
+     "epochs": 3
+    },
+    "D4": {
+     "key": "r76.9566_d+30.4013_f6.0_D4",
+     "n": 55,
+     "epochs": 3
+    },
+    "D5": {
+     "key": "r76.9566_d+30.4013_f6.0_D5",
+     "n": 56,
+     "epochs": 3
+    },
+    "D6": {
+     "key": "r76.9566_d+30.4013_f6.0_D6",
+     "n": 56,
+     "epochs": 3
+    }
+   }
+  },
+  {
+   "id": "rdra",
+   "title": "R Draconis",
+   "kind": "Estrela variável pulsante (Mira)",
+   "legend": "Uma gigante vermelha que pulsa com período de cerca de 245 dias, mudando muito de brilho. É tão brilhante que satura o detector (a mancha lisa no centro), mas o halo em volta cresce e encolhe junto com ela. Clique na estrela e veja o brilho subir e descer entre as épocas.",
+   "band": "D6",
+   "fov": 6.0,
+   "ra": 248.1672,
+   "dec": 66.755,
+   "simbad": {
+    "query": "R Dra",
+    "name": "V* R Dra",
+    "otype": "Mi*",
+    "ra_j2000": 248.16761083295,
+    "dec_j2000": 66.75497941722,
+    "pmra": -20.643,
+    "pmde": 6.149,
+    "ra": 248.167233,
+    "dec": 66.755024,
+    "epoch": 2026.0,
+    "source": "SIMBAD via Sesame (CDS)"
+   },
+   "markers": [],
+   "bands": {
+    "D1": {
+     "key": "r248.1672_d+66.7550_f6.0_D1",
+     "n": 90,
+     "epochs": 3
+    },
+    "D2": {
+     "key": "r248.1672_d+66.7550_f6.0_D2",
+     "n": 86,
+     "epochs": 3
+    },
+    "D3": {
+     "key": "r248.1672_d+66.7550_f6.0_D3",
+     "n": 89,
+     "epochs": 3
+    },
+    "D4": {
+     "key": "r248.1672_d+66.7550_f6.0_D4",
+     "n": 83,
+     "epochs": 3
+    },
+    "D5": {
+     "key": "r248.1672_d+66.7550_f6.0_D5",
+     "n": 84,
+     "epochs": 3
+    },
+    "D6": {
+     "key": "r248.1672_d+66.7550_f6.0_D6",
+     "n": 91,
+     "epochs": 3
+    }
+   }
+  }
+ ]
+}

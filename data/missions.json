@@ -1,0 +1,351 @@
+{
+  "acts": [
+    {
+      "act": 1,
+      "title": "Treinamento",
+      "badge": "Cadete de órbita"
+    },
+    {
+      "act": 2,
+      "title": "Objetos difíceis",
+      "badge": "Observador de campo"
+    },
+    {
+      "act": 3,
+      "title": "Caça ao Planeta X",
+      "badge": "Patrulha do céu"
+    }
+  ],
+  "missions": [
+    {
+      "id": "m-primeiro-contato",
+      "act": 1,
+      "title": "Primeiro contato",
+      "target": null,
+      "band": null,
+      "kind": "explore",
+      "brief": "Abra qualquer alvo de exemplo e veja a animação das épocas.",
+      "hint": "No painel Exemplos, clique em um nome. A animação começa sozinha.",
+      "check": {
+        "n": 1,
+        "example": true
+      },
+      "reward": {
+        "xp": 60,
+        "credits": 20
+      },
+      "requires": [],
+      "explain": "Cada quadro é uma passagem do SPHEREx pela mesma região, alinhada na mesma grade do céu. O que pula de lugar se moveu de verdade.",
+      "hints": [
+        "Qualquer nome da lista Exemplos serve. Depois que as imagens carregarem, volte aqui e transmita.",
+        "Se a lista não aparece, feche a região aberta (seta ← no topo) para ver o painel Exemplos à esquerda."
+      ]
+    },
+    {
+      "id": "m-barnard",
+      "act": 1,
+      "title": "A estrela que corre",
+      "target": "barnard",
+      "band": "D4",
+      "kind": "measure_motion",
+      "brief": "Meça quanto a Estrela de Barnard andou entre as épocas.",
+      "hint": "Use a vista Diferença ou Animação e clique no centro da mancha. A medida aparece na aba Medição.",
+      "check": {
+        "pm_arcsec_yr": [
+          8.5,
+          12.0
+        ],
+        "pa_deg": [
+          340,
+          20
+        ]
+      },
+      "reward": {
+        "xp": 120,
+        "credits": 40
+      },
+      "requires": [],
+      "ref": "SIMBAD: 10,4″/ano, direção ~356° (norte)",
+      "explain": "A ferramenta mede cerca de 9,6″/ano na banda D4. O miolo da estrela está saturado, então a posição vem do contorno da mancha, e a precisão é de alguns segundos de arco.",
+      "hints": [
+        "A mancha creme no centro é a estrela, saturada. Clique bem no meio dela, não nas estrelas em volta.",
+        "Confira a banda D4 no topo. A medida certa fica perto de 10″/ano rumo ao norte (0°); se deu bem menos, você clicou em outra estrela."
+      ]
+    },
+    {
+      "id": "m-rdra",
+      "act": 1,
+      "title": "Quem pisca",
+      "target": "rdra",
+      "band": "D6",
+      "kind": "measure_variability",
+      "brief": "Meça quanto o brilho de R Draconis mudou entre as épocas.",
+      "hint": "Clique no centro da estrela. O veredito de brilho aparece na aba Medição.",
+      "check": {
+        "min_pct": 40,
+        "band": "D6"
+      },
+      "reward": {
+        "xp": 120,
+        "credits": 40
+      },
+      "requires": [],
+      "ref": "R Draconis é uma variável Mira, período de ~245 dias",
+      "explain": "A ferramenta mede cerca de 70% de variação na D6. A estrela satura o detector, então o brilho é medido nas asas (o halo): serve para comparar épocas, não é o fluxo total.",
+      "hints": [
+        "Precisa ser na banda D6: em outras bandas a variação fica pequena demais.",
+        "Abra pelo botão da ordem (ele já ajusta a banda) e clique no centro da mancha. A variação aparece como “Brilho mudou …%”."
+      ]
+    },
+    {
+      "id": "m-epsindb",
+      "act": 2,
+      "title": "Par escondido",
+      "target": "epsindb",
+      "band": "D2",
+      "kind": "measure_motion",
+      "brief": "Meça o movimento do par de anãs marrons Epsilon Indi B.",
+      "hint": "Banda D2. Clique no ponto no centro; as duas anãs aparecem fundidas em uma só mancha.",
+      "check": {
+        "pm_arcsec_yr": [
+          3.8,
+          5.6
+        ],
+        "pa_deg": [
+          102,
+          142
+        ]
+      },
+      "reward": {
+        "xp": 160,
+        "credits": 50
+      },
+      "requires": [],
+      "ref": "SIMBAD: 4,7″/ano, direção ~122°",
+      "explain": "A ferramenta mede cerca de 4,5″/ano a 127°. O par orbita a estrela Epsilon Indi A, a 12 anos-luz, e anda junto com ela.",
+      "hints": [
+        "É um ponto fraco no centro da mira, não a estrela brilhante ao lado.",
+        "Use a vista Soma para achar o ponto e depois clique nele. Esperado: uns 4 a 5″/ano rumo sudeste (~120°)."
+      ]
+    },
+    {
+      "id": "m-wise-banda",
+      "act": 2,
+      "title": "A anã mais fria, parte 1",
+      "target": "wise0855",
+      "band": null,
+      "kind": "pick_band",
+      "brief": "Descubra em qual banda a WISE 0855 aparece melhor.",
+      "hint": "Troque a banda (D1 a D6) com o alvo aberto e veja onde aparece um ponto no centro.",
+      "check": {
+        "band": "D6"
+      },
+      "reward": {
+        "xp": 100,
+        "credits": 30
+      },
+      "requires": [],
+      "ref": "Resposta: D6 (4,4–5,0 µm)",
+      "explain": "A WISE 0855 tem cerca de −20 °C e quase só emite luz perto de 5 micrômetros. Nas bandas curtas ela praticamente some.",
+      "hints": [
+        "Este objeto é frio: brilha mais no infravermelho mais longo.",
+        "Teste as bandas de número alto. Só em uma delas aparece um ponto nítido no centro."
+      ]
+    },
+    {
+      "id": "m-wise-mov",
+      "act": 2,
+      "title": "A anã mais fria, parte 2",
+      "target": "wise0855",
+      "band": "D6",
+      "kind": "measure_motion",
+      "brief": "Agora meça o movimento da WISE 0855 na banda D6.",
+      "hint": "Use a Diferença: procure o par azul e laranja perto da mira e clique no centro.",
+      "check": {
+        "pm_arcsec_yr": [
+          6.5,
+          10.5
+        ],
+        "pa_deg": [
+          250,
+          300
+        ]
+      },
+      "reward": {
+        "xp": 180,
+        "credits": 60
+      },
+      "requires": [
+        "m-wise-banda"
+      ],
+      "ref": "SIMBAD: 8,2″/ano, direção ~275°",
+      "explain": "A ferramenta mede cerca de 8,9″/ano. Atenção: as épocas boas estão só 5 meses separadas, então o valor mistura o movimento próprio com a paralaxe (o vaivém causado pela órbita da Terra).",
+      "hints": [
+        "Na vista Diferença, o par azul e laranja junto da mira é o objeto mudando de lugar.",
+        "Clique no centro entre as duas cores. Esperado: uns 8 a 9″/ano rumo oeste (~280°). O intervalo curto entre épocas soma paralaxe."
+      ]
+    },
+    {
+      "id": "m-rwaur",
+      "act": 2,
+      "title": "Poeira no disco",
+      "target": "rwaur",
+      "band": "D6",
+      "kind": "measure_variability",
+      "brief": "Meça a variação de brilho da estrela jovem RW Aurigae.",
+      "hint": "Banda D6, clique no centro da estrela.",
+      "check": {
+        "min_pct": 30,
+        "band": "D6"
+      },
+      "reward": {
+        "xp": 160,
+        "credits": 50
+      },
+      "requires": [],
+      "ref": "RW Aurigae é uma estrela T Tauri, variável irregular",
+      "explain": "A ferramenta mede cerca de 58% na D6. Nas bandas D1, D2 e D4 a variação medida fica dentro do erro, e esse resultado ainda não foi conferido com outra fonte.",
+      "hints": [
+        "Só a banda D6 mostra a variação acima da incerteza.",
+        "Abra pelo botão da ordem (banda D6) e clique no centro. A variação esperada passa de 30%."
+      ]
+    },
+    {
+      "id": "m-patrulha",
+      "act": 3,
+      "title": "Patrulha",
+      "target": null,
+      "band": null,
+      "kind": "classify",
+      "brief": "Classifique 5 candidatos da Fila.",
+      "hint": "Na aba Fila, use as teclas 1, 2 e 3. Os controles conhecidos contam acerto; os outros contam participação.",
+      "check": {
+        "n": 5
+      },
+      "reward": {
+        "xp": 150,
+        "credits": 60
+      },
+      "requires": [],
+      "explain": "Candidatos sem resposta conhecida não têm certo nem errado: seu voto entra no consenso para revisão humana.",
+      "hints": [
+        "Abra a aba Fila e dê seu voto em 5 candidatos. Use as teclas 1, 2 e 3 para ir rápido.",
+        "Os votos ficam no seu apelido: confira se ele aparece no topo da tela."
+      ]
+    },
+    {
+      "id": "m-consenso",
+      "act": 3,
+      "title": "Consenso",
+      "target": null,
+      "band": null,
+      "kind": "consensus",
+      "brief": "Tenha um voto em um candidato que chegue ao consenso.",
+      "hint": "Consenso = pelo menos 3 votos e dois terços de acordo. Chame mais gente para classificar.",
+      "check": {},
+      "reward": {
+        "xp": 200,
+        "credits": 80
+      },
+      "requires": [
+        "m-patrulha"
+      ],
+      "explain": "Consenso não é confirmação: candidatos com consenso de “se move” seguem para revisão de astrônomos.",
+      "hints": [
+        "Um candidato fecha com 3 votos e dois terços de acordo. Os seus votos contam.",
+        "Compartilhe o link da Fila com alguém e peça para votar nos mesmos candidatos."
+      ]
+    },
+    {
+      "id": "m-campo-novo",
+      "act": 3,
+      "title": "Campo novo",
+      "target": null,
+      "band": null,
+      "kind": "explore",
+      "brief": "Abra 3 regiões novas pelo panorama (fora dos exemplos) e marque algo que pareça se mover.",
+      "hint": "Clique em qualquer ponto do céu para abrir a região. Depois clique em um objeto e use “Marcar candidato”.",
+      "check": {
+        "n": 3,
+        "example": false,
+        "mark": true
+      },
+      "reward": {
+        "xp": 220,
+        "credits": 80
+      },
+      "requires": [],
+      "explain": "Candidato registrado para revisão. Ninguém confirmou ainda. A marcação entra no CSV do Mural.",
+      "hints": [
+        "Regiões dos Exemplos não contam: clique em um ponto qualquer do céu, fora dos exemplos.",
+        "Abra 3 regiões novas e, em uma delas, clique num objeto e use “Marcar candidato”."
+      ]
+    }
+  ],
+  "shop": [
+    {
+      "id": "name",
+      "title": "Nome do satélite",
+      "cost": 0,
+      "kind": "text"
+    },
+    {
+      "id": "shield",
+      "title": "Cor do escudo solar",
+      "cost": 20,
+      "kind": "color",
+      "options": [
+        "#c9ccd4",
+        "#7c9cff",
+        "#4fc38a",
+        "#f0a050",
+        "#ff6b6b",
+        "#b48cff"
+      ]
+    },
+    {
+      "id": "emblem",
+      "title": "Emblema",
+      "cost": 30,
+      "kind": "emblem",
+      "options": [
+        "estrela",
+        "cometa",
+        "anel",
+        "lua",
+        "olho",
+        "raio",
+        "orbita",
+        "flor"
+      ]
+    },
+    {
+      "id": "trail",
+      "title": "Cor do rastro de órbita",
+      "cost": 25,
+      "kind": "color",
+      "options": [
+        "#ffd166",
+        "#7c9cff",
+        "#4fc38a",
+        "#f06292",
+        "#4dd0e1",
+        "#ffffff"
+      ]
+    },
+    {
+      "id": "panel",
+      "title": "Painel solar extra",
+      "cost": 0,
+      "kind": "toggle",
+      "level": 3
+    },
+    {
+      "id": "gold",
+      "title": "Pintura dourada",
+      "cost": 0,
+      "kind": "toggle",
+      "badge": "act3"
+    }
+  ]
+}
