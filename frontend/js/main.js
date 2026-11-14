@@ -162,6 +162,11 @@ async function initGlobe() {
       },
       // abre o planeta centralizado sozinho na primeira vez que o céu inteiro aparece (sem região aberta,
       // sem tela inicial e sem um endereço que já aponte para uma região)
+      // cartão da próxima missão dentro da vista do planeta
+      game: {
+        accept: (id) => command.orderActions.accept(id), go: (m) => command.orderActions.go(m),
+        hunt: () => hunt.play(), all: () => showTab('missions'),
+      },
       autoOpen: () => !openedRegionFromURL && document.body.dataset.tab === 'explore' && $('#work').hidden
         && !document.documentElement.dataset.intro && !document.body.classList.contains('hunt-on'),
     });

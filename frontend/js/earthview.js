@@ -169,7 +169,7 @@ function buildScene(THREE, day, night) {
  * Liga a miniatura em `mini` (botão) e o planeta em tela cheia em `full`. `snapshot()` vem do globe.js e
  * devolve null fora do céu 360° da aba Céu (aí a miniatura some).
  */
-export async function startEarthView({ mini, full, snapshot, skyLink = null, autoOpen = null }) {
+export async function startEarthView({ mini, full, snapshot, skyLink = null, autoOpen = null, game = null }) {
   const THREE = await import(THREE_URL);
   const load = (f) => new Promise((res, rej) => new THREE.TextureLoader().load(IMG + f, (t) => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; res(t); }, undefined, rej));
   const [day, night] = await Promise.all([load('earth-blue-marble.jpg'), load('earth-night.jpg')]);
@@ -263,6 +263,7 @@ export async function startEarthView({ mini, full, snapshot, skyLink = null, aut
     sizeTo(br, bCam, host);
     full.getBoundingClientRect();                 // aplica o estado inicial antes de animar
     full.classList.add('open');
+    renderCard();
     full.focus({ preventScroll: true });
     refresh();
   }
@@ -275,6 +276,40 @@ export async function startEarthView({ mini, full, snapshot, skyLink = null, aut
     closing = setTimeout(() => { full.hidden = true; mini.focus({ preventScroll: true }); }, still ? 0 : 600);
   }
   mini.addEventListener('click', open);
+
+  // ---------------------------------------------------------------- cartão "próxima missão"
+  // Ajuda a começar: mostra a missão em andamento (ou a próxima) com um botão para jogar, e o atalho
+  // para a partida rápida. Clicar no cartão não conta como "clique fora do planeta".
+  const card = document.createElement('aside');
+  card.className = 'ef-next'; card.hidden = true; card.setAttribute('aria-label', 'Próxima missão');
+  full.append(card);
+  for (const t of ['pointerdown', 'pointerup', 'click', 'wheel']) card.addEventListener(t, (e) => e.stopPropagation());
+  function renderCard() {
+    const s = G.get();
+    if (!game || !s) { card.hidden = true; return; }
+    const act = G.activeMission(), nx = act || s.missions.find((m) => m.status !== 'done' && !m.locked);
+    const done = s.missions.filter((m) => m.status === 'done').length, n = nx ? s.missions.indexOf(nx) + 1 : 0;
+    card.innerHTML = nx ? `
+      <p class="label">${act ? 'Em andamento' : done ? 'Próxima missão' : 'Comece por aqui'} · ${done}/${s.missions.length}</p>
+      <h3>Missão ${n} · ${esc(nx.title)}</h3>
+      <p class="small">${esc(nx.brief)}</p>
+      <div class="ef-next-bar"><i style="width:${(100 * done) / s.missions.length}%"></i></div>
+      <div class="row"><button class="primary" data-n="play">${act ? 'Continuar' : 'Jogar'} ▸</button>
+        <button class="ghost" data-n="hunt" title="5 rodadas rápidas: ache o que se move">⚡ Caça rápida</button></div>`
+      : `<p class="label">Campanha completa</p><h3>Todas as missões feitas</h3>
+      <div class="row"><button class="primary" data-n="hunt">⚡ Caça ao movimento</button><button class="ghost" data-n="all">Ver missões</button></div>`;
+    card.dataset.id = nx?.id || '';
+    card.hidden = false;
+  }
+  card.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-n]'); if (!b) return;
+    const id = card.dataset.id, a = b.dataset.n;
+    close();
+    if (a === 'play') (G.activeMission() ? game.go(G.activeMission()) : game.accept(id));
+    if (a === 'hunt') game.hunt();
+    if (a === 'all') game.all();
+  });
+  G.onChange(() => { if (!full.hidden) renderCard(); });
   const tip = document.createElement('div'); tip.className = 'ef-tip'; tip.hidden = true; full.append(tip);
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   full.addEventListener('pointermove', (e) => {
