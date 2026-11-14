@@ -104,9 +104,31 @@ export function sessionId() {
   }
   return id;
 }
+/**
+ * Região aproximada e segura de quem joga, para aparecer no planeta. Não pede GPS nem consulta serviço
+ * de IP: parte do fuso horário do navegador (ex.: America/Sao_Paulo → coordenada de referência da zona)
+ * e desloca o ponto de 120 a 300 km numa direção sorteada pelo id da aba (sempre a mesma para você).
+ * Vai arredondado a 0,1°. Sem fuso conhecido, usa só a longitude do deslocamento UTC.
+ */
+let _loc;
+export async function approxLocation() {
+  if (_loc !== undefined) return _loc;
+  try {
+    const { TZ } = await import('./tzcoords.js');
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    const base = TZ[tz] || [0, -new Date().getTimezoneOffset() / 4];
+    const h = (salt) => { let x = 2166136261 ^ salt; for (const c of sessionId()) { x ^= c.charCodeAt(0); x = Math.imul(x, 16777619); } return ((x >>> 0) % 100000) / 100000; };
+    const ang = h(7) * 2 * Math.PI, km = 120 + 180 * h(8);
+    const lat = Math.max(-80, Math.min(80, base[0] + (km / 111) * Math.cos(ang)));
+    const lon = ((base[1] + (km / (111 * Math.max(0.2, Math.cos((lat * Math.PI) / 180)))) * Math.sin(ang) + 540) % 360) - 180;
+    const region = TZ[tz] ? tz.split('/').pop().replace(/_/g, ' ') : '';
+    _loc = { loc: [Math.round(lat * 10) / 10, Math.round(lon * 10) / 10], region };
+  } catch { _loc = null; }
+  return _loc;
+}
 /** Avisa que esta aba está aberta e devolve quem está online (só você, se a API não existir). */
 export async function ping() {
-  const me = { id: sessionId(), nickname: getNick() };
+  const me = { id: sessionId(), nickname: getNick(), ...((await approxLocation()) || {}) };
   try {
     return await getJSON('api/presence', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(me) });
   } catch { return [me]; }

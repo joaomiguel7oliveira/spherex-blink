@@ -165,19 +165,25 @@ def marks_csv():
 # houver). Online = sinal nos últimos 90 s. Não guarda IP nem localização; a órbita de cada satélite
 # no globo é inventada a partir do id, no navegador.
 PRESENCE_TTL = 90
-_presence: dict[str, tuple[str, float]] = {}
+_presence: dict[str, tuple] = {}   # id -> (apelido, visto, [lat, lon] aproximado, região)
 
 
 class Ping(BaseModel):
     id: str = Field(min_length=8, max_length=64, pattern=r"^[A-Za-z0-9-]+$")
     nickname: str = Field("", max_length=24)
+    # região aproximada (fuso horário + deslocamento de centenas de km, feito no navegador); nunca GPS
+    loc: list[float] | None = Field(None, min_length=2, max_length=2)
+    region: str = Field("", max_length=40)
 
 
 @app.post("/api/presence")
 def presence(p: Ping):
     now = time.time()
-    _presence[p.id] = (p.nickname.strip(), now)
-    for k in [k for k, (_, t) in _presence.items() if now - t > PRESENCE_TTL]:
+    loc = None
+    if p.loc and -90 <= p.loc[0] <= 90 and -180 <= p.loc[1] <= 180:
+        loc = [round(p.loc[0], 1), round(p.loc[1], 1)]
+    _presence[p.id] = (p.nickname.strip(), now, loc, p.region.strip())
+    for k in [k for k, v in _presence.items() if now - v[1] > PRESENCE_TTL]:
         del _presence[k]
     return online()
 
@@ -186,7 +192,7 @@ def presence(p: Ping):
 def online():
     """Quem está online, com o visual (ilustrativo) do satélite e a missão ativa de cada um."""
     now = time.time()
-    ids = [k for k, (_, t) in _presence.items() if now - t <= PRESENCE_TTL]
+    ids = [k for k, v in _presence.items() if now - v[1] <= PRESENCE_TTL]
     info = {}
     if ids:
         with _db() as con:
@@ -194,13 +200,13 @@ def online():
             info = {r[0]: r[1:] for r in con.execute(q, ids)}
     out = []
     for k in ids:
-        row = {"id": k, "nickname": _presence[k][0]}
+        row = {"id": k, "nickname": _presence[k][0], "loc": _presence[k][2], "region": _presence[k][3]}
         if k in info:
             xp, sat_json, active = info[k]
             sat = json.loads(sat_json or "{}")
             m = game.mission(active) if active else None
             row.update(level=game.level(xp), color=sat.get("trail"), emblem=sat.get("emblem"), satname=sat.get("name"),
-                       mission=f"Ato {m['act']}, {m['title']}" if m else None)
+                       mission=f"Missão {game.data()['missions'].index(m) + 1}: {m['title']}" if m else None)
         out.append(row)
     return out
 

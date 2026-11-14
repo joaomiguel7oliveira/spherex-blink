@@ -6,9 +6,10 @@
 // a tela cheia, com o planeta no centro, sem interface e com controles no estilo do Google Earth. Clicar
 // fora do planeta (ou Esc) encolhe de volta para a miniatura.
 //
-// No planeta aparecem os jogadores online agora como pontinhos em órbita. Quem está online é real
-// (cada aba avisa o servidor a cada 30 s); a órbita de cada um é inventada a partir de um id aleatório:
-// polar, sincronizada com o Sol, a 650–800 km, como a do SPHEREx. Ninguém é localizado.
+// No planeta aparecem os jogadores online agora, na superfície, cada um na sua região aproximada. Quem
+// está online é real (cada aba avisa o servidor a cada 30 s). A posição sai do fuso horário do navegador,
+// deslocada de 120 a 300 km numa direção sorteada (api.approxLocation): mostra o país ou a região, nunca
+// onde a pessoa está. Não há GPS nem consulta de IP.
 //
 // A Terra é a mesma do panorama: mesma orientação (GEO) e a mesma luz do horário de agora (dia e noite
 // reais em cada lugar, com as luzes das cidades no lado da noite).
@@ -21,12 +22,18 @@ import * as G from './missions.js';
 // simulados, não entram em ranking nenhum e somem com ?sim=0 no endereço. Os nomes, níveis e
 // missões são inventados; a missão de cada um muda a cada poucos minutos.
 const SIM_ON = new URLSearchParams(location.search).get('sim') !== '0';
+// regiões dos simulados (inventadas, com o mesmo arredondamento dos jogadores reais)
+const SIM_AT = [
+  { loc: [-3.1, -60.0], region: 'Manaus' }, { loc: [-8.1, -34.9], region: 'Recife' }, { loc: [-15.8, -47.9], region: 'Brasília' },
+  { loc: [-30.0, -51.2], region: 'Porto Alegre' }, { loc: [38.7, -9.1], region: 'Lisboa' }, { loc: [-12.9, -38.5], region: 'Salvador' },
+  { loc: [-19.9, -43.9], region: 'Belo Horizonte' }, { loc: [-3.7, -38.5], region: 'Fortaleza' },
+];
 const SIM = [
   ['Vega-7', 4, '#4dd0e1'], ['Lince', 2, '#f06292'], ['Aurora-2', 6, '#ffd166'], ['Tucano', 3, '#4fc38a'],
   ['Kepler-Mirim', 1, '#ffffff'], ['Boto', 5, '#b48cff'], ['Cerrado-1', 2, '#f0a050'], ['Jandaia', 3, '#7c9cff'],
-].map(([name, level, color], i) => ({ id: `sim-${i}-${name}`, nickname: name, level, color, sim: true }));
-const SIM_MISSIONS = ['Ato 1, A estrela que corre', 'Ato 1, Quem pisca', 'Ato 2, Par escondido', 'Ato 2, A anã mais fria, parte 2',
-  'Ato 2, Poeira no disco', 'Ato 3, Patrulha', 'Ato 3, Campo novo', null];
+].map(([name, level, color], i) => ({ id: `sim-${i}-${name}`, nickname: name, level, color, sim: true, ...SIM_AT[i] }));
+const SIM_MISSIONS = ['Missão 2: A estrela que corre', 'Missão 3: Quem pisca', 'Missão 4: Par escondido', 'Missão 6: A anã mais fria, parte 2',
+  'Missão 7: Poeira no disco', 'Missão 8: Patrulha', 'Missão 10: Campo novo', null];
 function simPlayers() {
   if (!SIM_ON) return [];
   const slot = Math.floor(Date.now() / 240000);
@@ -34,6 +41,12 @@ function simPlayers() {
 }
 
 const R_KM = 6371, PERIOD = 98.6 * 60, INC = 97.8;   // período (s) e inclinação de uma órbita como a do SPHEREx
+
+/** Latitude e longitude -> ponto na esfera da Terra, no referencial da própria Terra (o mesmo da textura). */
+function latLonLocal(lat, lon, r = 1) {
+  const phi = ((lon + 180) / 360) * 2 * Math.PI, th = ((90 - lat) / 180) * Math.PI;
+  return [-Math.cos(phi) * Math.sin(th) * r, Math.cos(th) * r, Math.sin(phi) * Math.sin(th) * r];
+}
 
 /** Número de 0 a 1 tirado de um texto (sempre o mesmo para o mesmo texto). */
 function hash01(s, salt) {
@@ -91,13 +104,19 @@ function buildScene(THREE, day, night) {
   beam.visible = tip.visible = false;
   scene.add(beam, tip);
 
-  const players = new THREE.Group(); scene.add(players);
-  const dotGeo = new THREE.SphereGeometry(0.022, 10, 8);
+  // jogadores na superfície: ficam dentro da Terra (giram com ela e somem atrás dela pelo depth)
+  const players = new THREE.Group(); earth.add(players);
+  const dotGeo = new THREE.SphereGeometry(0.016, 12, 8);
+  const ringGeo = new THREE.RingGeometry(0.026, 0.034, 28);
+  // você também, na sua região aproximada (anel dourado)
+  const home = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: 0xffc95c, side: THREE.DoubleSide, transparent: true, opacity: 0.95, depthWrite: false }));
+  home.add(new THREE.Mesh(dotGeo, new THREE.MeshBasicMaterial({ color: 0xffc95c })));
+  home.visible = false; earth.add(home);
 
   return {
-    scene, earth, cone, me, players, tip,
-    /** Atualiza luz, você, cone e jogadores. `others`: [{id}] sem você. */
-    update(snap, others, dotScale = 1, cam = null, aim = null) {
+    scene, earth, cone, me, players, tip, home,
+    /** Atualiza luz, você, cone e jogadores. `others`: [{id, loc}] sem você; `myLoc`: [lat, lon] ou null. */
+    update(snap, others, dotScale = 1, cam = null, aim = null, myLoc = null) {
       // perto, cada marcador encolhe com a distância até a câmera, para ficar do mesmo tamanho na tela
       const sz = (o) => (cam ? Math.max(0.02, Math.min(1, o.position.distanceTo(cam) / 3.2)) : dotScale);
       sunU.value.set(...snap.sun);
@@ -108,20 +127,31 @@ function buildScene(THREE, day, night) {
       cone.position.copy(me.position);
       cone.scale.set(Math.tan(half) * len, Math.tan(half) * len, len);
       cone.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), new THREE.Vector3(...snap.C));
-      // jogadores
+      // jogadores: um ponto na região aproximada de cada um, com um halo que pulsa devagar
       while (players.children.length > others.length) players.remove(players.children.at(-1));
       while (players.children.length < others.length) {
         const d = new THREE.Mesh(dotGeo, new THREE.MeshBasicMaterial({ color: 0x7ce8b5 }));
         d.add(new THREE.Mesh(dotGeo, new THREE.MeshBasicMaterial({ color: 0x7ce8b5, transparent: true, opacity: 0.22, depthWrite: false })));
-        d.children[0].scale.setScalar(2.4); players.add(d);
+        players.add(d);
       }
-      const t = Date.now() / 1000;
+      const t = Date.now() / 1000, pulse = 2.2 + 0.6 * Math.sin(t * 2.2);
+      const wp = new THREE.Vector3();
       others.forEach((p, i) => {
         const d = players.children[i], c = p.color || '#7ce8b5';
         if (d.userData.c !== c) { d.material.color.set(c); d.children[0].material.color.set(c); d.userData.c = c; }
-        d.children[0].material.opacity = p.sim ? 0.12 : 0.26;   // simulados com brilho mais fraco
-        d.position.set(...orbitPos(p.id, t)); d.scale.setScalar(sz(d));
+        d.children[0].material.opacity = p.sim ? 0.14 : 0.3;   // simulados com brilho mais fraco
+        // sem região (cliente antigo): fica numa órbita inventada, como antes
+        d.position.set(...(p.loc ? latLonLocal(p.loc[0], p.loc[1], 1.004) : orbitPos(p.id, t)));
+        d.children[0].scale.setScalar(pulse);
+        d.getWorldPosition(wp); const k = cam ? Math.max(0.05, Math.min(1, wp.distanceTo(cam) / 3.2)) : dotScale;
+        d.scale.setScalar(k);
       });
+      home.visible = !!myLoc;
+      if (myLoc) {
+        home.position.set(...latLonLocal(myLoc[0], myLoc[1], 1.005));
+        home.lookAt(home.position.clone().multiplyScalar(2));   // anel deitado na superfície
+        home.getWorldPosition(wp); home.scale.setScalar(cam ? Math.max(0.05, Math.min(1, wp.distanceTo(cam) / 3.2)) : dotScale);
+      }
       me.scale.setScalar(sz(me));
       beam.visible = tip.visible = !!aim;
       if (aim) {
@@ -139,7 +169,7 @@ function buildScene(THREE, day, night) {
  * Liga a miniatura em `mini` (botão) e o planeta em tela cheia em `full`. `snapshot()` vem do globe.js e
  * devolve null fora do céu 360° da aba Céu (aí a miniatura some).
  */
-export async function startEarthView({ mini, full, snapshot, skyLink = null }) {
+export async function startEarthView({ mini, full, snapshot, skyLink = null, autoOpen = null }) {
   const THREE = await import(THREE_URL);
   const load = (f) => new Promise((res, rej) => new THREE.TextureLoader().load(IMG + f, (t) => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; res(t); }, undefined, rej));
   const [day, night] = await Promise.all([load('earth-blue-marble.jpg'), load('earth-night.jpg')]);
@@ -148,6 +178,8 @@ export async function startEarthView({ mini, full, snapshot, skyLink = null }) {
   let online = [];
   const me = api.sessionId();
   const others = () => online.filter((p) => p.id !== me).concat(simPlayers());
+  let myLoc = null, locReady = false;
+  api.approxLocation().then((l) => { myLoc = l?.loc || null; }).finally(() => { locReady = true; });
   const countEl = mini.querySelector('[data-online]'), simEl = mini.querySelector('[data-sim]');
   async function refresh() {
     if (document.hidden) return;
@@ -178,7 +210,7 @@ export async function startEarthView({ mini, full, snapshot, skyLink = null }) {
   const bCam = new THREE.PerspectiveCamera(FOV, 1, 0.1, 100);
   const nav = earthNav(THREE, host, bCam, null, () => close());
   const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let lastSnap = null, closing = 0;
+  let lastSnap = null, closing = 0, autoDone = false;
 
   /** Tamanho do planeta na tela (fração da altura) e a distância da câmera que dá esse tamanho. */
   function fit() {
@@ -215,9 +247,13 @@ export async function startEarthView({ mini, full, snapshot, skyLink = null }) {
     lastSnap = s;
     fromMini();
     full.hidden = false;
-    // você no centro, norte para cima, o planeta inteiro à vista
-    // com uma ordem ativa, olha um pouco de lado para o feixe até o alvo aparecer inteiro
+    // o planeta inteiro no centro, norte para cima, virado para a sua região (ou para o satélite)
+    // com uma missão ativa, olha um pouco de lado para o feixe até o alvo aparecer inteiro
     const o = new THREE.Vector3(...s.cam).normalize(), aim = aimNow();
+    if (myLoc && !aim) {
+      bScene.earth.updateMatrixWorld();
+      o.set(...latLonLocal(myLoc[0], myLoc[1])).applyQuaternion(bScene.earth.quaternion).normalize();
+    }
     if (aim) {
       // eixo da câmera perpendicular ao feixe: ele aparece com o comprimento inteiro
       const a = new THREE.Vector3(...aim).normalize(), side = o.clone().addScaledVector(a, -o.dot(a));
@@ -252,13 +288,15 @@ export async function startEarthView({ mini, full, snapshot, skyLink = null }) {
       if (d < bd) { bd = d; best = { p, x, y }; }
     };
     bScene.players.children.forEach((d, i) => list[i] && test(d, list[i]));
-    test(bScene.me, { me: true });
+    if (bScene.home.visible) test(bScene.home, { me: true });
+    test(bScene.me, { me: true, sat: true });
     tip.hidden = !best;
     if (!best) return;
     const p = best.p, mine = online.find((o) => o.id === me) || {};
+    const where = (r) => (r ? `<small>região de ${esc(r)} (aproximada)</small>` : '');
     tip.innerHTML = p.me
-      ? `<b>Você</b>${mine.level ? ` · nível ${mine.level}` : ''}<small>${esc(mine.mission || 'sem missão ativa')}</small>`
-      : `<b>${esc(p.satname || p.nickname || 'Visitante')}</b>${p.level ? ` · nível ${p.level}` : ''}${p.sim ? ' · <i>simulado</i>' : ''}<small>${esc(p.mission || 'sem missão ativa')}</small>`;
+      ? `<b>${p.sat ? 'Seu satélite' : 'Você'}</b>${mine.level ? ` · nível ${mine.level}` : ''}${p.sat ? '' : where(mine.region)}<small>${esc(mine.mission || 'sem missão ativa')}</small>`
+      : `<b>${esc(p.nickname || p.satname || 'Visitante')}</b>${p.level ? ` · nível ${p.level}` : ''}${p.sim ? ' · <i>simulado</i>' : ''}${where(p.region)}<small>${esc(p.mission || 'sem missão ativa')}</small>`;
     tip.style.left = `${best.x}px`; tip.style.top = `${best.y}px`;
   });
   full.addEventListener('pointerleave', () => { tip.hidden = true; });
@@ -293,14 +331,16 @@ export async function startEarthView({ mini, full, snapshot, skyLink = null }) {
       mCam.up.copy(up);
       mCam.position.copy(at).addScaledVector(C, -6.2).addScaledVector(up, 1.6);
       mCam.lookAt(at);
-      if (sizeTo(mr, mCam, mr.domElement.parentElement)) { mScene.update(s, others(), 1.3, null, aimNow()); mr.render(mScene.scene, mCam); }
+      if (sizeTo(mr, mCam, mr.domElement.parentElement)) { mScene.update(s, others(), 1.3, null, aimNow(), myLoc); mr.render(mScene.scene, mCam); }
+      // por padrão o planeta abre centralizado na primeira vez que o céu fica à vista
+      if (!autoDone && locReady && autoOpen?.()) { autoDone = true; open(); }
     }
     if (!full.hidden) {
       if (s) lastSnap = s;
       nav.step();
       if (full.classList.contains('open')) linkSky();
       const aim = aimNow();
-      if (lastSnap && sizeTo(br, bCam, host)) { bScene.update(lastSnap, others(), 1, bCam.position, aim); br.render(bScene.scene, bCam); }
+      if (lastSnap && sizeTo(br, bCam, host)) { bScene.update(lastSnap, others(), 1, bCam.position, aim, myLoc); br.render(bScene.scene, bCam); }
       // rótulo da ordem na ponta do feixe
       const am = G.activeMission();
       // o rótulo some quando a ponta do feixe fica atrás da Terra

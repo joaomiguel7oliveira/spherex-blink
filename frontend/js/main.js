@@ -124,6 +124,8 @@ async function initSky() {
  * céu 360°, na aba Céu, com nenhuma região aberta e o botão Terra ligado. Some ao aproximar.
  */
 let globe = null;
+// endereço que já abre uma região: aí o planeta não abre sozinho por cima dela
+const openedRegionFromURL = ((u) => u.has('ra') || u.has('target'))(new URLSearchParams(location.search));
 const earthOn = () => document.querySelector('#sky-layers [data-layer=earth]').classList.contains('on');
 async function initGlobe() {
   try {
@@ -158,6 +160,10 @@ async function initGlobe() {
         set: (ra, dec) => sky.impl.al.gotoRaDec(ra, dec),
         restore: (ra, dec, fov) => sky.flyTo(ra, dec, fov, 0.6),
       },
+      // abre o planeta centralizado sozinho na primeira vez que o céu inteiro aparece (sem região aberta,
+      // sem tela inicial e sem um endereço que já aponte para uma região)
+      autoOpen: () => !openedRegionFromURL && document.body.dataset.tab === 'explore' && $('#work').hidden
+        && !document.documentElement.dataset.intro && !document.body.classList.contains('hunt-on'),
     });
   } catch (e) { console.warn('Terra 3D indisponível:', e); }
 }
