@@ -1,0 +1,15 @@
+# Blueprint do Render: um serviço web gratuito com a API (FastAPI) e o site estático.
+# O cache dos alvos de teste é gerado na build (baixa do IRSA), então a demo abre rápido.
+# No plano gratuito o disco não é persistente: votos, marcas e progresso das missões
+# voltam a zero a cada novo deploy ou reinício.
+services:
+  - type: web
+    name: spherex-blink
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt && python -m backend.pregen
+    startCommand: uvicorn backend.api:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.14.2
