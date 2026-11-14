@@ -9,11 +9,11 @@ import time
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi.responses import FileResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import catalogs, config as C, game, pipeline
+from . import catalogs, config as C, game, hunt, pipeline
 
 app = FastAPI(title="SPHEREx Blink", docs_url="/api/docs", openapi_url="/api/openapi.json")
 app.add_middleware(GZipMiddleware, minimum_size=2000)
@@ -47,6 +47,7 @@ def _db():
                 " score INT, ts REAL, PRIMARY KEY (sid, mission))")
     con.execute("CREATE TABLE IF NOT EXISTS regions_seen (sid TEXT, key TEXT, example INT, ts REAL,"
                 " PRIMARY KEY (sid, key))")
+    con.execute("CREATE TABLE IF NOT EXISTS hunt_scores (sid TEXT, nickname TEXT, score INT, max INT, ts REAL)")
     return con
 
 
@@ -265,7 +266,7 @@ def _player_view(p: dict) -> dict:
                         explain=full.get("explain"))
         missions.append(item)
     return {"sid": p["sid"], "nickname": p["nickname"], "xp": p["xp"], "level": lvl,
-            "next_level_xp": 100 * lvl * lvl, "level_xp": 100 * (lvl - 1) ** 2, "credits": p["credits"],
+            "next_level_xp": game.LEVEL_K * lvl * lvl, "level_xp": game.LEVEL_K * (lvl - 1) ** 2, "credits": p["credits"],
             "sat": p["sat"], "badges": game.badges(done, p["extra"]), "active": p["active"],
             "acts": game.data()["acts"], "shop": game.data()["shop"], "missions": missions}
 
@@ -360,12 +361,22 @@ def mission_report(b: Report):
         if why:
             raise HTTPException(409, why)
         res = game.check_report(m, b.answer, _context(con, p))
+        best = p["progress"].get(m["id"], {}).get("score") or 0 if m["id"] in done else 0
         out = {**res, "mission": m["id"], "title": m["title"], "xp": 0, "credits": 0, "level_up": False,
-               "explain": m.get("explain"), "ref": m.get("ref"), "repeat": m["id"] in done}
+               "explain": m.get("explain") if res["ok"] else None, "ref": m.get("ref") if res["ok"] else None,
+               "repeat": m["id"] in done, "best": max(best, res["score"] if res["ok"] else 0), "max": game.PTS}
+        if res["ok"] and m["id"] in done and res["score"] > best:
+            # jogar de novo vale a pena: a diferença para o melhor resultado vira pontos
+            gain = res["score"] - best
+            lvl0 = game.level(p["xp"])
+            con.execute("UPDATE players SET xp=xp+?, active=NULL WHERE sid=?", (gain, b.sid))
+            con.execute("UPDATE progress SET score=?, answer_json=?, ts=? WHERE sid=? AND mission=?",
+                        (res["score"], json.dumps(b.answer), now, b.sid, m["id"]))
+            out.update(xp=gain, improved=True, level_up=game.level(p["xp"] + gain) > lvl0)
         if res["ok"] and m["id"] not in done:
             lvl0 = game.level(p["xp"])
-            xp = round(m["reward"]["xp"] * res["score"] / 100)
-            cr = round(m["reward"]["credits"] * res["score"] / 100)
+            xp = res["score"]
+            cr = round(m["reward"]["credits"] * res["score"] / game.PTS)
             extra = set(p["extra"])
             if m["kind"] == "consensus":
                 extra.add("consenso")
@@ -406,6 +417,63 @@ def leaderboard():
             out.append({"nickname": nick or "sem apelido", "xp": xp, "level": game.level(xp),
                         "badges": game.badges(done, set(json.loads(extra or "[]"))), "missions": len(done)})
     return out
+
+
+# ------------------------------------------------------------------ Caça ao movimento (ver backend/hunt.py)
+class HuntBody(SidBody):
+    game: str = Field("", max_length=32)
+    round: int = Field(0, ge=0, lt=10)
+
+
+class HuntGuess(HuntBody):
+    x: float = Field(ge=-1, le=200)
+    y: float = Field(ge=-1, le=200)
+
+
+def _hunt_game(gid: str, sid: str) -> None:
+    g = hunt._games.get(gid)
+    if not g or g["sid"] != sid:
+        raise HTTPException(404, "Partida não encontrada. Comece outra.")
+
+
+@app.post("/api/hunt/new")
+def hunt_new(b: SidBody):
+    return hunt.new_game(b.sid)
+
+
+@app.post("/api/hunt/hint")
+def hunt_hint(b: HuntBody):
+    _hunt_game(b.game, b.sid)
+    return hunt.hint(b.game, b.round)
+
+
+@app.post("/api/hunt/guess")
+def hunt_guess(b: HuntGuess):
+    _hunt_game(b.game, b.sid)
+    res = hunt.guess(b.game, b.round, b.x, b.y)
+    g = hunt._games[b.game]
+    if res["done"] and not g.get("saved"):
+        g["saved"] = True
+        with _db() as con:
+            con.execute("INSERT INTO hunt_scores VALUES (?,?,?,?,?)",
+                        (b.sid, b.nickname.strip(), res["total"], hunt.PTS * len(g["rounds"]), time.time()))
+    return res
+
+
+@app.get("/api/hunt/img/{gid}/{rnd}/{ep}")
+def hunt_img(gid: str, rnd: int, ep: int):
+    g = hunt._games.get(gid)
+    if not g or not (0 <= rnd < len(g["rounds"])) or not (0 <= ep <= len(g["rounds"][rnd]["crops"])):
+        raise HTTPException(404, "imagem desconhecida")
+    return Response(hunt.png(gid, rnd, ep), media_type="image/png", headers={"Cache-Control": "private, max-age=3600"})
+
+
+@app.get("/api/hunt/leaderboard")
+def hunt_leaderboard():
+    with _db() as con:
+        rows = con.execute("SELECT nickname, MAX(score), max, COUNT(*) FROM hunt_scores WHERE nickname<>''"
+                           " GROUP BY nickname ORDER BY MAX(score) DESC LIMIT 20").fetchall()
+    return [{"nickname": n, "best": s, "max": m, "games": c} for n, s, m, c in rows]
 
 
 # ------------------------------------------------------------------ arquivos estáticos

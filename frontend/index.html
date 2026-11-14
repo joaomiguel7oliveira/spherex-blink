@@ -41,7 +41,7 @@
 <div id="sky" aria-label="Panorama 360° do céu: arraste para olhar em volta, role para zoom, clique para escolher um ponto"></div>
 <!-- a Terra em tamanho real vista de 700 km e o SPHEREx ao lado, por cima do céu afastado; não recebe cliques -->
 <div id="globe" class="globe" aria-hidden="true"></div>
-<div id="sky-orders" class="sky-orders" aria-label="Ordens da Central no céu"></div>
+<div id="sky-orders" class="sky-orders" aria-label="Missões no céu"></div>
 
 <header class="top">
   <a class="brand" href="./"><span class="dot"></span>SPHEREx <b>Blink</b></a>
@@ -239,23 +239,24 @@
 <!-- ============================================================ MURAL -->
 <main id="tab-missions" class="tab page" hidden>
   <section class="hero">
-    <p class="label">Modo missões</p>
-    <h1>Central de Comando</h1>
-    <p>Ordens com imagens reais do SPHEREx. Satélite e falas são ilustrativos; as medidas, nunca.</p>
+    <p class="label">Jogar</p>
+    <h1>Missões</h1>
+    <p>Imagens reais do SPHEREx. Até 5.000 pontos por rodada: quanto mais perto, mais pontos.</p>
+    <div id="game-modes" class="game-modes"></div>
     <p id="cmd-offline" class="status" hidden>Sem servidor: o progresso fica só neste navegador e a missão de consenso não está disponível.</p>
   </section>
   <div id="cmd-status" class="cmd-status"></div>
   <div class="cmd-console">
-    <section class="panel comms" aria-label="Canal com a Central">
-      <h3>Canal <span class="tag">ilustrativo</span></h3>
+    <section class="panel comms" aria-label="Mensagens">
+      <h3>Mensagens</h3>
       <div id="cmd-comms" class="comms-log" role="log" aria-label="Mensagens do canal"></div>
     </section>
     <div class="cmd-console-side">
-      <section id="cmd-order" class="panel cmd-order" aria-label="Ordem atual"></section>
+      <section id="cmd-order" class="panel cmd-order" aria-label="Missão atual"></section>
       <section id="cmd-telemetry" class="panel telemetry" aria-label="Telemetria"></section>
     </div>
   </div>
-  <h2 class="cmd-h2">Ordens</h2>
+  <h2 class="cmd-h2">Campanha</h2>
   <div class="cmd-grid">
     <div id="cmd-acts"></div>
     <aside class="cmd-side">
@@ -283,7 +284,8 @@
   <section class="wall">
     <div class="panel"><h3>Candidatos</h3><div id="wall-cands"></div></div>
     <div class="panel"><h3>Participantes</h3><div id="wall-rank"></div></div>
-    <div class="panel"><h3>Ranking de missões (XP)</h3><div id="wall-xp"></div></div>
+    <div class="panel"><h3>Caça ao movimento · recordes</h3><div id="wall-hunt"></div></div>
+    <div class="panel"><h3>Campanha · pontos</h3><div id="wall-xp"></div></div>
     <div class="panel wide"><h3>Marcações <a id="csv" class="ghost btn" href="api/marks.csv">Exportar CSV</a></h3><div id="wall-marks"></div></div>
   </section>
 </main>

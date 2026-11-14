@@ -6,6 +6,7 @@ import { loadAladin, SURVEYS, BARE, spherexChannels } from './aladin.js';
 import * as api from './api.js';
 import * as missions from './missions.js';
 import * as command from './command.js';
+import * as hunt from './hunt.js';
 import { scatter, PALETTE } from './plot.js';
 import {
   aperture, ringPhot, centroid, holeCentroid, computeEpochs, medianStack, robustSigma, tanDeproject, parseCoords,
@@ -741,7 +742,7 @@ async function showTab(tab, push = true) {
   if (tab === 'missions') await command.show().catch((e) => console.warn(e));
   else if (tab !== 'explore') {
     const q = await import('./queue.js'); await q.show(tab, askNick);
-    if (tab === 'wall') command.renderLeaderboard($('#wall-xp')).catch(() => {});
+    if (tab === 'wall') { command.renderLeaderboard($('#wall-xp')).catch(() => {}); command.renderHuntBoard($('#wall-hunt')).catch(() => {}); }
   }
   command.renderBar();
   if (push) writeURL(true);
@@ -893,7 +894,9 @@ async function init() {
     setBand: (b) => { if (st.ra != null) go({ ra: st.ra, dec: st.dec, fov: st.fov, band: b }, { view: viewer.s.view === 'rgb' ? 'anim' : viewer.s.view, frames: viewer.s.frameMode }); },
     goTarget: (id, band) => { const t = targets.find((x) => x.id === id); if (t) go({ ra: t.ra, dec: t.dec, fov: t.fov, band: band || t.band }); },
     askNick: () => askNick(), showTab: (t) => showTab(t),
+    playHunt: () => hunt.play(),
   });
+  hunt.init({ askNick: () => askNick(), showTab: (t) => showTab(t) });
   // ordens da Central desenhadas no próprio céu, nas posições reais dos alvos
   import('./skyorders.js').then(({ startSkyOrders }) => startSkyOrders({
     layer: $('#sky-orders'), sky,

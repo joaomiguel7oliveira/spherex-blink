@@ -24,7 +24,7 @@ async function call(path, body) {
 const who = () => ({ sid: sessionId(), nickname: getNick() });
 
 // ------------------------------------------------------------------ modo offline
-const level = (xp) => Math.floor(Math.sqrt(Math.max(0, xp) / 100)) + 1;
+const level = (xp) => Math.floor(Math.sqrt(Math.max(0, xp) / 2500)) + 1;
 const defaultSat = () => ({ name: '', shield: '#c9ccd4', emblem: null, trail: '#ffd166', panel: false, gold: false, owned: [] });
 function loadLocal() {
   try { return JSON.parse(localStorage.getItem(KEY)) || null; } catch { return null; }
@@ -45,7 +45,7 @@ function viewLocal(p) {
   const lvl = level(p.xp);
   const badges = missionsFile.acts.filter((a) => actDone(a.act, done)).map((a) => `act${a.act}`).concat([...p.extra].sort());
   return {
-    sid: sessionId(), nickname: getNick(), xp: p.xp, level: lvl, next_level_xp: 100 * lvl * lvl, level_xp: 100 * (lvl - 1) ** 2,
+    sid: sessionId(), nickname: getNick(), xp: p.xp, level: lvl, next_level_xp: 2500 * lvl * lvl, level_xp: 2500 * (lvl - 1) ** 2,
     credits: p.credits, sat: { ...defaultSat(), ...p.sat }, badges, active: p.active, acts: missionsFile.acts, shop: missionsFile.shop,
     missions: missionsFile.missions.map(({ check, ref, explain, ...m }) => {
       const pr = p.progress[m.id] || {};
@@ -66,25 +66,25 @@ function checkLocal(m, a, ctx) {
   if (m.target && a.target !== m.target) return { ok: false, score: 0, detail: 'Este relatório é de outro alvo. Abra o alvo da missão e meça de novo.' };
   if (m.kind === 'measure_motion') {
     const pm = n('pm'), pa = n('pa'), [lo, hi] = c.pm_arcsec_yr;
-    if (inRange(pm, lo, hi) && angleIn(pa, ...c.pa_deg)) return { ok: true, score: 100, detail: `Medida aceita: ${String(pm.toFixed(1)).replace('.', ',')}″/ano a ${Math.round(pa)}°.` };
+    if (inRange(pm, lo, hi) && angleIn(pa, ...c.pa_deg)) return { ok: true, score: 5000, detail: `Medida aceita: ${String(pm.toFixed(1)).replace('.', ',')}″/ano a ${Math.round(pa)}°.` };
     return { ok: false, score: 0, detail: `Fora da faixa: ${pm == null ? 'faltou a velocidade' : `${String(pm.toFixed(1)).replace('.', ',')}″/ano (esperado ${String(lo).replace('.', ',')} a ${hi})`}, direção ${pa == null ? '?' : Math.round(pa) + '°'}.` };
   }
   if (m.kind === 'measure_variability') {
     if (c.band && a.band !== c.band) return { ok: false, score: 0, detail: `Meça na banda ${c.band} (você mediu na ${a.band || '?'}).` };
     const v = n('var_pct');
-    return v != null && v >= c.min_pct ? { ok: true, score: 100, detail: `Variação aceita: ${Math.round(v)}%.` }
+    return v != null && v >= c.min_pct ? { ok: true, score: 5000, detail: `Variação aceita: ${Math.round(v)}%.` }
       : { ok: false, score: 0, detail: `Fora da faixa: ${Math.round(v || 0)}% é menos que os ${c.min_pct}% esperados.` };
   }
-  if (m.kind === 'pick_band') return a.band === c.band ? { ok: true, score: 100, detail: `Isso: banda ${c.band}.` } : { ok: false, score: 0, detail: `Na banda ${a.band || '?'} o objeto não aparece bem. Tente outra.` };
+  if (m.kind === 'pick_band') return a.band === c.band ? { ok: true, score: 5000, detail: `Isso: banda ${c.band}.` } : { ok: false, score: 0, detail: `Na banda ${a.band || '?'} o objeto não aparece bem. Tente outra.` };
   if (m.kind === 'explore') {
     const k = c.example ? ctx.ex : ctx.novo;
     if (k < c.n) return { ok: false, score: 0, detail: `Regiões abertas: ${k} de ${c.n}.` };
     if (c.mark && ctx.marks < 1) return { ok: false, score: 0, detail: 'Falta marcar um candidato.' };
-    return { ok: true, score: 100, detail: 'Missão cumprida.' };
+    return { ok: true, score: 5000, detail: 'Missão cumprida.' };
   }
   if (m.kind === 'classify') {
     if (ctx.votes < c.n) return { ok: false, score: 0, detail: `Classificados: ${ctx.votes} de ${c.n}.` };
-    return { ok: true, score: 100, detail: `${ctx.votes} classificações (participação).` };
+    return { ok: true, score: 5000, detail: `${ctx.votes} classificações (participação).` };
   }
   if (m.kind === 'consensus') return { ok: false, score: 0, detail: 'Consenso precisa de outros jogadores, e isso só existe com o servidor.' };
   return { ok: false, score: 0, detail: 'Tipo de missão desconhecido.' };
@@ -138,7 +138,7 @@ export async function report(id, answer) {
     res = { ...r, mission: id, title: m.title, xp: 0, credits: 0, level_up: false, explain: m.explain, ref: m.ref, repeat: was };
     if (r.ok && !was) {
       const lvl0 = level(p.xp);
-      res.xp = Math.round(m.reward.xp * r.score / 100); res.credits = Math.round(m.reward.credits * r.score / 100);
+      res.xp = r.score; res.credits = Math.round(m.reward.credits * r.score / 5000);
       p.xp += res.xp; p.credits += res.credits; p.active = null;
       if (m.kind === 'explore' && m.check.mark) p.extra = [...new Set([...p.extra, 'campo-novo'])];
       p.progress[id] = { status: 'done', answer, score: r.score, ts: Date.now() / 1000 };

@@ -1,6 +1,6 @@
 """Modo missões: regras do jogo (conferência dos relatórios, níveis, insígnias, loja).
 
-Tudo o que é inventado (satélites, peças, Central de Comando) é ilustrativo. As medições vêm
+Tudo o que é inventado (satélites, peças) é ilustrativo. As medições vêm
 do navegador do jogador, com as mesmas ferramentas do modo Céu, e nunca são alteradas aqui.
 Sem login: o jogador é um id aleatório do navegador (`sid`) mais o apelido.
 """
@@ -33,8 +33,21 @@ def public_missions() -> list[dict]:
     return [{k: v for k, v in m.items() if k not in ("check", "ref", "explain")} for m in data()["missions"]]
 
 
+PTS = 5000          # pontuação máxima de uma missão (como uma rodada de GeoGuessr)
+LEVEL_K = 2500      # nível = floor(sqrt(pontos / LEVEL_K)) + 1
+
+
 def level(xp: int) -> int:
-    return int(math.sqrt(max(0, xp) / 100)) + 1
+    return int(math.sqrt(max(0, xp) / LEVEL_K)) + 1
+
+
+def _closeness(err: float, tol: float) -> float:
+    """1 no centro, ~0,5 na borda da faixa aceita (err = tol), caindo suave depois dela."""
+    return math.exp(-0.693 * (err / max(tol, 1e-9)) ** 2)
+
+
+def _ang(a: float, b: float) -> float:
+    return abs((a - b + 180) % 360 - 180)
 
 
 def default_sat() -> dict:
@@ -60,7 +73,7 @@ def locked_reason(m: dict, done: set[str], lvl: int) -> str | None:
             return f"Faça antes: {r['title'] if r else req}"
     act = m["act"]
     if act > 1 and not act_done(act - 1, done) and lvl < 2 + act:
-        return f"Termine o ato {act - 1} ou chegue ao nível {2 + act}"
+        return f"Termine o capítulo {act - 1} ou chegue ao nível {2 + act}"
     return None
 
 
@@ -85,7 +98,8 @@ def _br(v: float, d: int = 1) -> str:
 def check_report(m: dict, answer: dict, ctx: dict) -> dict:
     """Confere um relatório. ctx traz o que o servidor sabe por conta própria (votos, marcações).
 
-    Devolve {ok, score, detail}. score é 0–100; participação também é ok (sem certo/errado).
+    Devolve {ok, score, detail, truth?}. score vai de 0 a 5000 e mede a precisão (perto do centro da faixa
+    de catálogo vale mais); participação vale 5000. truth só vai quando a medida é aceita.
     """
     chk, kind = m.get("check", {}), m["kind"]
     num = lambda k: (float(answer[k]) if isinstance(answer.get(k), (int, float)) else None)  # noqa: E731
@@ -96,8 +110,18 @@ def check_report(m: dict, answer: dict, ctx: dict) -> dict:
         pm, pa = num("pm"), num("pa")
         lo, hi = chk["pm_arcsec_yr"]
         ok_pm, ok_pa = _in_range(pm, lo, hi), _angle_in(pa, *chk["pa_deg"])
+        ref_pm = (lo + hi) / 2
+        a0, a1 = chk["pa_deg"]
+        ref_pa = (a0 + ((a1 - a0) % 360) / 2) % 360
+        half_pa = ((a1 - a0) % 360) / 2
+        truth = {"pm": round(ref_pm, 1), "pa": round(ref_pa), "pm_range": [lo, hi], "pa_range": [a0, a1]}
+        if pm is not None and pa is not None:
+            q = _closeness(abs(pm - ref_pm), (hi - lo) / 2) * _closeness(_ang(pa, ref_pa), half_pa)
+            pts = round(PTS * (0.5 + 0.5 * q)) if ok_pm and ok_pa else round(PTS * 0.45 * q)
+        else:
+            pts = 0
         if ok_pm and ok_pa:
-            return {"ok": True, "score": 100, "detail": f"Medida aceita: {_br(pm)}″/ano a {pa:.0f}°."}
+            return {"ok": True, "score": pts, "truth": truth, "detail": f"{_br(pm)}″/ano a {pa:.0f}°."}
         why = []
         if not ok_pm:
             why.append(f"velocidade {_br(pm)}″/ano fora da faixa esperada ({_br(lo)} a {_br(hi)})" if pm is not None
@@ -105,20 +129,24 @@ def check_report(m: dict, answer: dict, ctx: dict) -> dict:
         if not ok_pa:
             why.append(f"direção {pa:.0f}° fora da faixa ({chk['pa_deg'][0]}° a {chk['pa_deg'][1]}°)" if pa is not None
                        else "faltou a direção")
-        return {"ok": False, "score": 0, "detail": "Fora da faixa: " + "; ".join(why) + "."}
+        hint = {"pm": "slow" if pm is not None and pm < lo else "fast" if pm is not None and pm > hi else "ok",
+                "pa": "ok" if ok_pa else "off"}
+        return {"ok": False, "score": pts, "miss": hint, "detail": "Fora da faixa: " + "; ".join(why) + "."}
 
     if kind == "measure_variability":
         v, band = num("var_pct"), answer.get("band")
         if chk.get("band") and band != chk["band"]:
             return {"ok": False, "score": 0, "detail": f"Meça na banda {chk['band']} (você mediu na {band or '?'})."}
-        if v is not None and v >= chk["min_pct"]:
-            return {"ok": True, "score": 100, "detail": f"Variação aceita: {v:.0f}%."}
-        return {"ok": False, "score": 0,
+        lim = chk["min_pct"]
+        if v is not None and v >= lim:
+            pts = round(PTS * min(1.0, 0.6 + 0.4 * (v - lim) / lim))
+            return {"ok": True, "score": pts, "truth": {"min_pct": lim}, "detail": f"Variação de {v:.0f}%."}
+        return {"ok": False, "score": round(PTS * 0.45 * max(0.0, (v or 0) / lim)),
                 "detail": f"Fora da faixa: {v if v is not None else 0:.0f}% é menos que os {chk['min_pct']}% esperados."}
 
     if kind == "pick_band":
         if answer.get("band") == chk["band"]:
-            return {"ok": True, "score": 100, "detail": f"Isso: banda {chk['band']}."}
+            return {"ok": True, "score": PTS, "truth": {"band": chk["band"]}, "detail": f"Banda {chk['band']}."}
         return {"ok": False, "score": 0, "detail": f"Na banda {answer.get('band') or '?'} o objeto não aparece bem. Tente outra."}
 
     if kind == "explore":
@@ -127,7 +155,7 @@ def check_report(m: dict, answer: dict, ctx: dict) -> dict:
             return {"ok": False, "score": 0, "detail": f"Regiões abertas: {n} de {chk['n']}."}
         if chk.get("mark") and ctx["marks"] < 1:
             return {"ok": False, "score": 0, "detail": "Falta marcar um candidato (clique em um objeto e use “Marcar candidato”)."}
-        return {"ok": True, "score": 100, "detail": "Missão cumprida."}
+        return {"ok": True, "score": PTS, "detail": "Missão cumprida."}
 
     if kind == "classify":
         n, correct, controls = ctx["votes"], ctx["controls_right"], ctx["controls_seen"]
@@ -137,12 +165,12 @@ def check_report(m: dict, answer: dict, ctx: dict) -> dict:
         txt = f"{n} classificações: {correct} de {controls} controles certos" if controls else f"{n} classificações"
         if part > 0:
             txt += f", {part} de participação (sem resposta conhecida)"
-        score = 100 if not controls else round(50 + 50 * correct / controls)
+        score = PTS if not controls else round(PTS * (0.5 + 0.5 * correct / controls))
         return {"ok": True, "score": score, "detail": txt + "."}
 
     if kind == "consensus":
         if ctx["consensus"]:
-            return {"ok": True, "score": 100, "detail": "Um candidato que você classificou chegou ao consenso."}
+            return {"ok": True, "score": PTS, "detail": "Um candidato que você classificou chegou ao consenso."}
         return {"ok": False, "score": 0, "detail": "Nenhum candidato que você votou tem consenso ainda (3 votos, 2/3 de acordo)."}
 
     return {"ok": False, "score": 0, "detail": f"Tipo de missão desconhecido: {kind}"}

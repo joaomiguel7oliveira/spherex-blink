@@ -28,7 +28,7 @@ export function startSkyOrders({ layer, sky, visible, occluded, actions }) {
   arrow.className = 'so-arrow'; arrow.hidden = true; arrow.type = 'button';
   layer.append(arrow);
   const cardEl = document.createElement('div');
-  cardEl.className = 'so-card'; cardEl.hidden = true; cardEl.setAttribute('role', 'dialog'); cardEl.setAttribute('aria-label', 'Ordem da Central');
+  cardEl.className = 'so-card'; cardEl.hidden = true; cardEl.setAttribute('role', 'dialog'); cardEl.setAttribute('aria-label', 'Missão');
   layer.append(cardEl);
 
   function statusOf(ms, active) {
@@ -60,10 +60,10 @@ export function startSkyOrders({ layer, sky, visible, occluded, actions }) {
       el.type = 'button';
       el.className = `so-mark ${st}`;
       el.dataset.key = g.key;
-      el.setAttribute('aria-label', `Ordem ${actions.code(shown)}: ${shown.title}${st === 'done' ? ' (cumprida)' : st === 'locked' ? ' (sem autorização)' : ''}`);
+      el.setAttribute('aria-label', `${actions.code(shown)}: ${shown.title}${st === 'done' ? ' (feita)' : st === 'locked' ? ' (bloqueada)' : ''}`);
       el.innerHTML = `${st === 'active' ? '<span class="so-reticle" aria-hidden="true"><i></i><i></i><i></i><i></i></span>' : ''}
         <span class="so-tag"><b class="mono">${st === 'done' ? '✓' : st === 'locked' ? '🔒' : '◆'} ${actions.code(shown)}</b><span class="so-title">${esc(shown.title)}${ms.length > 1 ? ` <small>+${ms.length - 1}</small>` : ''}</span>
-        ${st === 'open' || st === 'active' ? `<small class="so-xp">+${shown.reward.xp} XP</small>` : ''}</span>`;
+        ${st === 'open' || st === 'active' ? `<small class="so-xp">5.000 pts</small>` : ''}</span>`;
       el.onclick = (e) => { e.stopPropagation(); openCard(g.key); };
       layer.append(el);
     }
@@ -77,12 +77,12 @@ export function startSkyOrders({ layer, sky, visible, occluded, actions }) {
     if (!g || !s) return closeCard();
     cardEl.innerHTML = `<p class="label">${esc(g.place.label)}</p>` + g.missions.map((m) => {
       const active = m.id === s.active, done = m.status === 'done';
-      const btn = done ? '<span class="tag ok">cumprida</span>'
+      const btn = done ? `<span class="tag ok">✓ ${Number(m.score || 0).toLocaleString('pt-BR')}</span><button data-so="accept" data-id="${m.id}">De novo</button>`
         : m.locked ? `<span class="muted small">🔒 ${esc(m.locked)}</span>`
         : active ? `<button class="primary" data-so="go" data-id="${m.id}">${g.place.queue ? 'Abrir a Fila' : 'Continuar'}</button>`
-        : `<button class="primary" data-so="accept" data-id="${m.id}">Iniciar</button>`;
+        : `<button class="primary" data-so="accept" data-id="${m.id}">Jogar</button>`;
       return `<div class="so-order ${active ? 'active' : ''}"><div><span class="tag mono">${actions.code(m)}</span> <b>${esc(m.title)}</b></div>
-        <p class="small muted">${esc(m.brief)}</p><p class="mono small so-rew">${m.band ? `${m.band} · ` : ''}+${m.reward.xp} XP</p>
+        <p class="small muted">${esc(m.brief)}</p><p class="mono small so-rew">${m.band ? `${m.band} · ` : ''}até 5.000 pts</p>
         <div class="row">${btn}</div></div>`;
     }).join('') + '<button class="ghost so-x" data-so="close" aria-label="Fechar">✕</button>';
   }
@@ -143,7 +143,7 @@ export function startSkyOrders({ layer, sky, visible, occluded, actions }) {
         const t = Math.min(tx, ty);
         arrow.style.transform = `translate(${(cx + dx * t).toFixed(1)}px, ${(cy + dy * t).toFixed(1)}px)`;
         arrow.innerHTML = `<span class="so-chev" style="transform:rotate(${Math.atan2(dy, dx)}rad)" aria-hidden="true">➤</span><span class="so-alabel"><b class="mono">${esc(actions.code(am))}</b> ${Math.round(sep)}°</span>`;
-        arrow.setAttribute('aria-label', `Girar até o alvo da ordem ${actions.code(am)}, a ${Math.round(sep)} graus daqui`);
+        arrow.setAttribute('aria-label', `Ir até o alvo da ${actions.code(am)}, a ${Math.round(sep)} graus daqui`);
         showArrow = true;
       }
     }

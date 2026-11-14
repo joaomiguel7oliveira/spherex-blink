@@ -317,8 +317,8 @@ export async function startEarthView({ mini, full, snapshot, skyLink = null }) {
         aimTag.classList.toggle('blocked', !!blocked);
         aimTag.dataset.suffix = blocked ? ' · alvo atrás da Terra' : '';
         aimTag.style.left = `${((v.x + 1) / 2) * full.clientWidth}px`; aimTag.style.top = `${((1 - v.y) / 2) * full.clientHeight}px`;
-        const t = `Ordem ${String(G.get().missions.indexOf(am) + 1).padStart(2, '0')} · ${am.title}`;
-        const full2 = blocked ? `OP-${t.slice(6, 8)} · alvo atrás da Terra` : `OP-${t.slice(6)}`;
+        const n = `Missão ${G.get().missions.indexOf(am) + 1}`;
+        const full2 = blocked ? `${n} · alvo atrás da Terra` : `${n} · ${am.title}`;
         aimTag.classList.toggle('flip', ((v.x + 1) / 2) > 0.62);
         if (aimTag.textContent !== full2) aimTag.textContent = full2;
       }

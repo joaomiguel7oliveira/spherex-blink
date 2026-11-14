@@ -94,7 +94,7 @@
       "explain": "A ferramenta mede cerca de 70% de variação na D6. A estrela satura o detector, então o brilho é medido nas asas (o halo): serve para comparar épocas, não é o fluxo total.",
       "hints": [
         "Precisa ser na banda D6: em outras bandas a variação fica pequena demais.",
-        "Abra pelo botão da ordem (ele já ajusta a banda) e clique no centro da mancha. A variação aparece como “Brilho mudou …%”."
+        "Abra pelo botão da missão (ele já ajusta a banda) e clique no centro da mancha. A variação aparece como “Brilho mudou …%”."
       ]
     },
     {
@@ -207,7 +207,7 @@
       "explain": "A ferramenta mede cerca de 58% na D6. Nas bandas D1, D2 e D4 a variação medida fica dentro do erro, e esse resultado ainda não foi conferido com outra fonte.",
       "hints": [
         "Só a banda D6 mostra a variação acima da incerteza.",
-        "Abra pelo botão da ordem (banda D6) e clique no centro. A variação esperada passa de 30%."
+        "Abra pelo botão da missão (banda D6) e clique no centro. A variação esperada passa de 30%."
       ]
     },
     {

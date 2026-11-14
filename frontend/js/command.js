@@ -17,8 +17,8 @@ const KIND = {
   pick_band: 'Escolher banda', classify: 'Patrulha', consensus: 'Consenso',
 };
 const BADGE = {
-  act1: ['Cadete de órbita', 'Concluiu o ato 1'], act2: ['Observador de campo', 'Concluiu o ato 2'],
-  act3: ['Patrulha do céu', 'Concluiu o ato 3'], consenso: ['Primeiro consenso', 'Votou em um candidato que chegou ao consenso'],
+  act1: ['Cadete de órbita', 'Concluiu o capítulo 1'], act2: ['Observador de campo', 'Concluiu o capítulo 2'],
+  act3: ['Patrulha do céu', 'Concluiu o capítulo 3'], consenso: ['Primeiro consenso', 'Votou em um candidato que chegou ao consenso'],
   'campo-novo': ['Campo novo', 'Marcou algo em uma região nova'],
 };
 /** Patente por nível (o nível continua sendo floor(sqrt(xp/100)) + 1). */
@@ -34,7 +34,8 @@ let bound = false;
 export function callsign(sat = G.get()?.sat) {
   return (sat?.name || '').trim() || `SPX-${sessionId().replace(/[^A-Za-z0-9]/g, '').slice(0, 3).toUpperCase()}`;
 }
-const code = (m) => `OP-${String((G.get()?.missions.findIndex((x) => x.id === m.id) ?? 0) + 1).padStart(2, '0')}`;
+const code = (m) => `Missão ${(G.get()?.missions.findIndex((x) => x.id === m.id) ?? 0) + 1}`;
+const pts = (v) => Number(v || 0).toLocaleString('pt-BR');
 const utc = (ts) => new Date(ts).toISOString().slice(11, 16) + ' UTC';
 
 // ------------------------------------------------------------------ canal com a Central (fica no navegador)
@@ -58,7 +59,7 @@ function say(text, { from = 'central', tag = null, replace = false, tone = '' } 
   l.push({ ts: Date.now(), from, text, tag, tone });
   while (l.length > 80) l.shift();
   writeLS(COMMS(), l);
-  if (from === 'central') announce(`Central: ${text}`);
+  if (from === 'central') announce(text);
   renderComms(); renderBar();
 }
 const lastCentral = () => [...log()].reverse().find((x) => x.from === 'central');
@@ -131,7 +132,7 @@ function steps(m) {
   if (m.kind === 'explore') out.push({ t: m.check?.mark ? 'Regiões novas + marcar' : 'Abrir um exemplo', ok: false });
   if (m.kind === 'classify') out.push({ t: 'Classificar 5', ok: false });
   if (m.kind === 'consensus') out.push({ t: 'Consenso', ok: false });
-  out.push({ t: 'Transmitir', ok: false, last: true });
+  out.push({ t: 'Enviar', ok: false, last: true });
   return { list: out, onTarget, bandOk, lm };
 }
 
@@ -143,16 +144,16 @@ let busy = false;
 /** Próxima ação da ordem, olhando o estado real da tela. */
 function nextAction(m) {
   const st = steps(m), here = ctx?.getContext() || {};
-  if (m.target && !st.onTarget) return { id: 'go', label: 'Ir ao alvo', icon: '🎯' };
-  if (m.band && m.kind !== 'pick_band' && !st.bandOk) return { id: 'band', label: `Banda ${m.band}`, icon: '◐' };
+  if (m.target && !st.onTarget) return { id: 'go', label: 'Ir até o alvo', icon: '🎯' };
+  if (m.band && m.kind !== 'pick_band' && !st.bandOk) return { id: 'band', label: `Trocar para ${m.band}`, icon: '◐' };
   if (m.kind === 'measure_motion' && !(st.lm && st.lm.pm != null)) return { id: 'measure', label: 'Medir', icon: '⌖' };
   if (m.kind === 'measure_variability' && !(st.lm && st.lm.varPct != null)) return { id: 'measure', label: 'Medir', icon: '⌖' };
-  if (m.kind === 'measure_motion') return { id: 'send', label: `Transmitir ${num(st.lm.pm)}″/ano`, icon: '📡' };
-  if (m.kind === 'measure_variability') return { id: 'send', label: `Transmitir ${Math.round(st.lm.varPct)}%`, icon: '📡' };
-  if (m.kind === 'pick_band') return { id: 'send', label: `Transmitir ${here.band}`, icon: '📡' };
+  if (m.kind === 'measure_motion') return { id: 'send', label: `Enviar ${num(st.lm.pm)}″/ano`, icon: '✓' };
+  if (m.kind === 'measure_variability') return { id: 'send', label: `Enviar ${Math.round(st.lm.varPct)}%`, icon: '✓' };
+  if (m.kind === 'pick_band') return { id: 'send', label: `É a ${here.band}`, icon: '✓' };
   if (m.kind === 'classify' || m.kind === 'consensus') return document.body.dataset.tab === 'queue'
-    ? { id: 'send', label: 'Transmitir', icon: '📡' } : { id: 'queue', label: 'Abrir a Fila', icon: '☰' };
-  return { id: 'send', label: 'Transmitir', icon: '📡' };
+    ? { id: 'send', label: 'Conferir', icon: '✓' } : { id: 'queue', label: 'Abrir a Fila', icon: '☰' };
+  return { id: 'send', label: 'Conferir', icon: '✓' };
 }
 
 function renderBar() {
@@ -173,7 +174,7 @@ function renderBar() {
     <button data-mb="${act.id}" class="primary mb-main" ${busy ? 'disabled' : ''}><span aria-hidden="true">${act.icon}</span> ${esc(act.label)}</button>
     ${m.kind === 'pick_band' && st.onTarget ? '<button data-mb="nextband" class="mb-icon" title="Próxima banda" aria-label="Próxima banda">◐</button>' : ''}
     <button data-mb="edit" class="mb-icon" title="Relatório detalhado" aria-label="Relatório detalhado">✎</button>
-    <button data-mb="central" class="mb-icon" title="Canal com a Central" aria-label="Canal com a Central">≡</button>`;
+    <button data-mb="central" class="mb-icon" title="Todas as missões" aria-label="Todas as missões">≡</button>`;
 }
 // a fala da Central some sozinha da faixa
 setInterval(() => { const m = G.activeMission(), msg = lastCentral(); if (m && msg && Date.now() - msg.ts < 8000) renderBar(); }, 1000);
@@ -189,18 +190,13 @@ async function quickSend(m) {
     const r = await G.report(m.id, answer);
     const s = G.get();
     if (r.ok && !r.repeat) {
-      flash = { ok: true, text: `✓ Confirmado · +${r.xp} XP · +${r.credits} cr`, until: Date.now() + 6000 };
-      toast(`✓ <b>${esc(m.title)}</b> · +${r.xp} XP`, 'gold');
-      say(`${code(m)} confirmado. +${r.xp} XP.${r.ref ? ` Catálogo: ${r.ref}.` : ''}`, { tone: 'ok' });
-      if (r.level_up) { say(`Promoção: ${rankName(s.level)}.`, { tone: 'gold' }); toast(`Promoção · <b>${esc(rankName(s.level))}</b>`, 'gold'); }
-      afterSuccess(s);
-    } else if (r.ok) {
-      flash = { ok: true, text: '✓ Já cumprida', until: Date.now() + 4000 };
-    } else {
-      const n = fails(m.id, 1), hint = hintAfter(m, n);
-      flash = { ok: false, text: `✗ ${hint}`, until: Date.now() + 9000 };
-      say(`Não confere. ${r.detail} ${hint}`, { tone: 'warn' });
+      say(`${code(m)} concluída: ${pts(r.score)} pontos.${r.ref ? ` Catálogo: ${r.ref}.` : ''}`, { tone: 'ok' });
+      if (r.level_up) say(`Você subiu para ${rankName(s.level)}.`, { tone: 'gold' });
+    } else if (!r.ok) {
+      fails(m.id, 1);
+      say(`Ainda não. ${r.detail}`, { tone: 'warn' });
     }
+    showRound(m, r, answer);
   } catch (e) {
     flash = { ok: false, text: `✗ ${e.message}`, until: Date.now() + 6000 };
   } finally { busy = false; renderBar(); setTimeout(renderBar, 9100); }
@@ -211,17 +207,7 @@ function afterSuccess(s) {
   for (const b of s.badges) if (!readLS(`spx_badge_seen_${sessionId()}`, []).includes(b)) {
     writeLS(`spx_badge_seen_${sessionId()}`, [...readLS(`spx_badge_seen_${sessionId()}`, []), b]);
     say(`Insígnia: ${BADGE[b]?.[0] || b}.`, { tone: 'gold' });
-    toast(`Insígnia · <b>${esc(BADGE[b]?.[0] || b)}</b>`, 'gold');
-  }
-  const nx = nextOrder();
-  if (nx) {
-    say(`Próxima: ${code(nx)} · ${nx.title}.`, { tag: 'next', replace: true });
-    const t = document.createElement('div');
-    t.className = 'toast next'; t.setAttribute('role', 'status');
-    t.innerHTML = `<span>Próxima ordem · <b>${esc(nx.title)}</b></span><button class="primary">Iniciar</button>`;
-    t.querySelector('button').onclick = () => { t.remove(); doAccept(nx.id); };
-    toastBox().prepend(t);
-    setTimeout(() => t.classList.add('out'), 9000); setTimeout(() => t.remove(), 9600);
+    toast(`🏅 <b>${esc(BADGE[b]?.[0] || b)}</b>`, 'gold');
   }
 }
 
@@ -239,15 +225,15 @@ function reportForm(m) {
     fields = `<label>Banda em que o objeto aparece melhor <select name="band">${BANDS.map((b) => `<option ${b === here.band ? 'selected' : ''}>${b}</option>`).join('')}</select></label>`;
   }
   const pre = m.kind.startsWith('measure')
-    ? (lm ? `<p class="muted small">Pacote montado com a sua última medida (banda ${esc(lm.band)}). Confira antes de transmitir.</p>`
+    ? (lm ? `<p class="muted small">Preenchido com a sua última medida (banda ${esc(lm.band)}). Ajuste se quiser.</p>`
       : '<p class="muted small">Ainda não há medida neste alvo. Clique no objeto na imagem para medir; se preferir, digite o valor.</p>') : '';
-  return `<p class="label">Downlink · ${esc(callsign())} → Central</p>
-    <h3 id="rp-title">Relatório da ordem ${code(m)} · ${esc(m.title)}</h3>
+  return `<p class="label">${code(m)}</p>
+    <h3 id="rp-title">${esc(m.title)}</h3>
     <p>${esc(m.brief)}</p>
-    ${wrongTarget ? '<p class="status err">O satélite não está apontado para o alvo desta ordem. Use “Apontar para o alvo” primeiro.</p>' : ''}
+    ${wrongTarget ? '<p class="status err">Você não está no alvo desta missão. Use “Ir até o alvo” primeiro.</p>' : ''}
     <form id="rp-form" class="rp-form">${fields}${pre}
       <div class="row end"><button type="button" class="ghost" data-rp="close">Fechar</button>
-      <button type="submit" class="primary">Transmitir</button></div>
+      <button type="submit" class="primary">Enviar</button></div>
     </form>
     <div id="rp-link" class="rp-link" hidden aria-hidden="true"></div>
     <div id="rp-result" aria-live="polite"></div>`;
@@ -258,7 +244,7 @@ async function downlink(nvals) {
   const el = $('#rp-link');
   if (!el || still) return;
   el.hidden = false;
-  const lines = ['Abrindo downlink…', `Transmitindo pacote (${nvals} valor${nvals === 1 ? '' : 'es'})…`, 'Aguardando a Central…'];
+  const lines = ['Conferindo com o catálogo…'];
   for (const l of lines) {
     el.innerHTML = `<span class="rp-wave"><i></i><i></i><i></i></span> ${l}`;
     await new Promise((r) => setTimeout(r, 420));
@@ -283,19 +269,22 @@ async function openReport() {
     try {
       const [r] = await Promise.all([G.report(m.id, answer), downlink([...fd.keys()].length || 1)]);
       $('#rp-link').hidden = true;
-      showResult(m, r);
+      dlg.close();
+      if (r.ok && !r.repeat) say(`${code(m)} concluída: ${pts(r.score)} pontos.`, { tone: 'ok' });
+      else if (!r.ok) { fails(m.id, 1); say(`Ainda não. ${r.detail}`, { tone: 'warn' }); }
+      showRound(m, r, answer);
     } catch (err) {
       $('#rp-link').hidden = true;
-      $('#rp-result').innerHTML = `<p class="status err">Falha no downlink: ${esc(err.message)}</p>`;
+      $('#rp-result').innerHTML = `<p class="status err">Não deu para enviar: ${esc(err.message)}</p>`;
     } finally { btn.disabled = false; }
   };
 }
 
 function packetText(m, a) {
-  if (a.pm != null) return `Relatório ${code(m)}: ${num(a.pm)}″/ano rumo ${Math.round(a.pa)}°, banda ${a.band}.`;
-  if (a.var_pct != null) return `Relatório ${code(m)}: brilho variou ${Math.round(a.var_pct)}%, banda ${a.band}.`;
-  if (m.kind === 'pick_band') return `Relatório ${code(m)}: o objeto aparece melhor na banda ${a.band}.`;
-  return `Relatório ${code(m)}: pronto para conferência.`;
+  if (a.pm != null) return `${num(a.pm)}″/ano rumo a ${Math.round(a.pa)}° (${a.band}).`;
+  if (a.var_pct != null) return `O brilho variou ${Math.round(a.var_pct)}% (${a.band}).`;
+  if (m.kind === 'pick_band') return `Aparece melhor na ${a.band}.`;
+  return 'Pronto, pode conferir.';
 }
 
 /** Dica da Central depois de cada falha: começa pela dica da ordem e fica mais específica. */
@@ -309,52 +298,113 @@ function nextOrder() {
   return s?.missions.find((m) => m.status !== 'done' && !m.locked) || null;
 }
 
-function showResult(m, r) {
-  const box = $('#rp-result'), s = G.get();
-  let reply;
-  if (r.ok && !r.repeat) {
-    fails(m.id, 0);
-    reply = `${code(m)} confirmado. ${r.detail} +${r.xp} XP · +${r.credits} cr.`;
-  } else if (r.ok) {
-    reply = `Confere. ${r.detail} (já cumprida, sem novo crédito)`;
-  } else {
-    const n = fails(m.id, 1);
-    reply = `Não confere. ${r.detail} ${hintAfter(m, n)}`;
+
+// ------------------------------------------------------------------ tela de resultado da rodada
+// Como no fim de uma rodada de GeoGuessr: pontos contando até o valor, barra até 5.000 e uma figura
+// que compara a sua medida com a de catálogo (só aparece a de catálogo quando a medida é aceita).
+function countUp(el, to, ms = 900) {
+  if (still || !to) { el.textContent = pts(to); return; }
+  const t0 = performance.now();
+  const step = (t) => {
+    const k = Math.min(1, (t - t0) / ms), e = 1 - (1 - k) ** 3;
+    el.textContent = pts(Math.round(to * e));
+    if (k < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+/** Bússola: seta da sua medida (azul) e, se aceita, a de catálogo (dourada) com a faixa aceita. */
+function compassSVG(a, truth) {
+  const R = 74, maxPm = Math.max(a.pm || 0, truth?.pm || 0, 1) * 1.15;
+  const pt = (pa, pm) => { const r = (pm / maxPm) * R, t = (pa * Math.PI) / 180; return [-Math.sin(t) * r, -Math.cos(t) * r]; };
+  const arrow = (pa, pm, cls) => { const [x, y] = pt(pa, pm); return `<line x1="0" y1="0" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" class="${cls}" marker-end="url(#ah-${cls})"/>`; };
+  let sector = '';
+  if (truth?.pa_range) {
+    const [a0, a1] = truth.pa_range, span = ((a1 - a0) % 360 + 360) % 360;
+    const r1 = (truth.pm_range[1] / maxPm) * R, r0 = (truth.pm_range[0] / maxPm) * R;
+    const P = (pa, r) => { const t = (pa * Math.PI) / 180; return `${(-Math.sin(t) * r).toFixed(1)} ${(-Math.cos(t) * r).toFixed(1)}`; };
+    sector = `<path class="cp-sector" d="M${P(a0, r0)} L${P(a0, r1)} A${r1} ${r1} 0 ${span > 180 ? 1 : 0} 0 ${P(a1, r1)} L${P(a1, r0)} A${r0} ${r0} 0 ${span > 180 ? 1 : 0} 1 ${P(a0, r0)}Z"/>`;
   }
-  say(reply, { tone: r.ok ? 'ok' : 'warn' });
-  box.innerHTML = `<div class="comms-msg central ${r.ok ? 'ok' : 'warn'}"><span class="mono small">CENTRAL · ${utc(Date.now())}</span><p>${esc(reply)}</p></div>
-    ${r.ok ? `${r.ref ? `<p class="small"><b>Referência de catálogo:</b> ${esc(r.ref)}</p>` : ''}${r.explain ? `<p class="small muted">${esc(r.explain)}</p>` : ''}` : ''}`;
-  if (r.ok && !r.repeat) {
-    $('#rp-form')?.remove();
-    const nx = nextOrder();
-    if (r.level_up) {
-      const msg = `Promoção: ${rankName(s.level)}. Novas peças no Hangar.`;
-      say(msg, { tone: 'gold' });
-      toast(`<b>Promoção</b> · ${esc(rankName(s.level))}`, 'gold');
-    }
-    afterSuccess(s);
-    box.insertAdjacentHTML('beforeend', `<div class="row end"><button class="ghost" data-rp="close2">Fechar</button>
-      <button class="primary" data-rp="central">${nx ? `Ver ordem ${code(nx)}` : 'Abrir a Central'}</button></div>`);
-    box.querySelector('[data-rp=close2]').onclick = () => $('#report-dialog').close();
-    box.querySelector('[data-rp=central]').onclick = () => { $('#report-dialog').close(); ctx.showTab('missions'); };
-  } else if (!r.ok) {
-    box.insertAdjacentHTML('beforeend', '<p class="small muted">Meça de novo e transmita outra vez. A medida vem das mesmas ferramentas do modo Céu.</p>');
-  }
+  return `<svg viewBox="-100 -100 200 200" class="rr-fig" role="img" aria-label="Sua medida${truth ? ' e a de catálogo' : ''} numa bússola do céu">
+    <defs>${['you', 'truth'].map((c) => `<marker id="ah-${c}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5 0 10z" class="ah-${c}"/></marker>`).join('')}</defs>
+    <circle r="${R}" class="cp-ring"/><circle r="${R / 2}" class="cp-ring faint"/>
+    <text y="${-R - 8}" class="cp-lbl">N</text><text x="${-R - 10}" y="4" class="cp-lbl">L</text><text x="${R + 10}" y="4" class="cp-lbl">O</text><text y="${R + 16}" class="cp-lbl">S</text>
+    ${sector}
+    ${truth ? `${arrow(truth.pa, truth.pm, 'truth')}` : ''}
+    ${a.pm != null ? arrow(a.pa, a.pm, 'you') : ''}
+    <circle r="3" class="cp-dot"/>
+  </svg>`;
+}
+
+function gaugeSVG(v, truth) {
+  const lim = truth?.min_pct, top = Math.max(v || 0, (lim || 40) * 2, 10) * 1.1, x = (u) => 10 + (u / top) * 280;
+  return `<svg viewBox="0 0 300 64" class="rr-fig wide" role="img" aria-label="Variação de brilho medida">
+    <rect x="10" y="26" width="280" height="12" rx="6" class="gg-track"/>
+    ${lim ? `<rect x="${x(lim)}" y="26" width="${290 - x(lim)}" height="12" rx="6" class="gg-ok"/><text x="${x(lim)}" y="58" class="cp-lbl">${lim}%</text>` : ''}
+    <line x1="${x(v || 0)}" x2="${x(v || 0)}" y1="16" y2="48" class="gg-you"/><text x="${x(v || 0)}" y="12" class="cp-lbl you">${Math.round(v || 0)}%</text>
+  </svg>`;
+}
+
+function showRound(m, r, a = {}) {
+  document.querySelector('.round-result')?.remove();
+  const s = G.get(), ok = r.ok, nx = nextOrder(), n = fails(m.id);
+  const fig = m.kind === 'measure_motion' ? compassSVG(a, ok ? r.truth : null)
+    : m.kind === 'measure_variability' ? gaugeSVG(a.var_pct, ok ? r.truth : null)
+    : `<div class="rr-big-ico ${ok ? 'ok' : 'bad'}" aria-hidden="true">${ok ? '✓' : '✗'}</div>`;
+  const miss = r.miss ? [r.miss.pm === 'slow' ? 'O alvo anda mais rápido do que isso.' : r.miss.pm === 'fast' ? 'O alvo anda mais devagar do que isso.' : '',
+    r.miss.pa === 'off' ? 'A direção não bate.' : ''].filter(Boolean).join(' ') : '';
+  const chips = [r.level_up && `⬆ ${esc(rankName(s.level))}`, r.improved && `+${pts(r.xp)} sobre o seu recorde`,
+    r.repeat && ok && !r.improved && `Recorde: ${pts(r.best)}`].filter(Boolean);
+  const el = document.createElement('div');
+  el.className = `round-result ${ok ? 'ok' : 'bad'}`;
+  el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', `Resultado da ${code(m)}`);
+  el.innerHTML = `<div class="rr-card">
+    <p class="label">${code(m)} · ${esc(m.title)}</p>
+    <div class="rr-score"><b class="rr-num">0</b><span>/ 5.000</span></div>
+    <div class="rr-bar"><i></i></div>
+    ${fig}
+    ${m.kind === 'measure_motion' ? `<p class="rr-legend"><span class="sw you"></span>você: ${num(a.pm)}″/ano · ${Math.round(a.pa ?? 0)}°${ok && r.truth ? ` &nbsp; <span class="sw truth"></span>esperado: ~${num(r.truth.pm)}″/ano · ${r.truth.pa}°` : ''}</p>` : ''}
+    <p class="rr-msg">${ok ? (r.score >= 4800 ? 'Na mosca!' : r.score >= 4000 ? 'Muito perto!' : 'Aceita.') : 'Quase lá.'} ${esc(miss || (ok ? '' : r.detail))}</p>
+    ${!ok ? `<p class="small muted rr-hint">💡 ${esc(hintAfter(m, n))}</p>` : ''}
+    ${ok && r.ref ? `<p class="small muted">${esc(r.ref)}${r.explain ? ` · ${esc(r.explain)}` : ''}</p>` : ''}
+    ${chips.length ? `<p class="rr-chips">${chips.map((c) => `<span>${c}</span>`).join('')}</p>` : ''}
+    <div class="row center">
+      ${ok ? `${nx ? `<button class="primary big" data-rr="next">Próxima: ${esc(code(nx))} →</button>` : '<button class="primary big" data-rr="camp">Ver campanha</button>'}<button class="ghost" data-rr="close">Ficar aqui</button>`
+        : '<button class="primary big" data-rr="close">Tentar de novo</button><button class="ghost" data-rr="later">Deixar para depois</button>'}
+    </div></div>`;
+  document.body.append(el);
+  countUp(el.querySelector('.rr-num'), r.score);
+  requestAnimationFrame(() => { el.classList.add('in'); el.querySelector('.rr-bar i').style.width = `${(r.score / 50).toFixed(1)}%`; });
+  const close = () => { el.classList.remove('in'); setTimeout(() => el.remove(), still ? 0 : 200); removeEventListener('keydown', key, true); };
+  const key = (e) => { if (e.key === 'Escape') { e.stopPropagation(); close(); } };
+  addEventListener('keydown', key, true);
+  el.onclick = async (e) => {
+    const b = e.target.closest('[data-rr]');
+    if (!b) { if (e.target === el) close(); return; }
+    close();
+    if (b.dataset.rr === 'next') doAccept(nx.id);
+    if (b.dataset.rr === 'camp') ctx.showTab('missions');
+    if (b.dataset.rr === 'later') { await G.abandon(); }
+  };
+  el.querySelector('.primary')?.focus({ preventScroll: true });
+  if (ok && !r.repeat) afterSuccess(s);
 }
 
 // ------------------------------------------------------------------ Central de Comando
 function missionCard(m, active) {
   const done = m.status === 'done', locked = !!m.locked;
-  const state = done ? '✓' : active ? 'ativa' : '';
+  const state = done ? `✓ ${pts(m.score)}` : active ? 'em andamento' : '';
   return `<article class="mcard ${done ? 'done' : ''} ${locked ? 'locked' : ''} ${active ? 'active' : ''}">
-    <div class="mc-top"><span class="tag mono">${code(m)}</span>${m.band ? `<span class="tag mono">${m.band}</span>` : ''}${state ? `<span class="tag ${done ? 'ok' : active ? 'warn' : ''}">${state}</span>` : ''}</div>
+    <div class="mc-top"><span class="mc-num">${code(m)}</span>${m.band ? `<span class="tag mono">${m.band}</span>` : ''}${state ? `<span class="tag ${done ? 'ok' : active ? 'warn' : ''}">${state}</span>` : ''}</div>
     <h4>${esc(m.title)}</h4>
     <p class="small muted">${esc(m.brief)}</p>
     ${locked ? `<p class="muted small">🔒 ${esc(m.locked)}</p>` : ''}
-    <div class="mc-foot"><span class="mono small">+${m.reward.xp} XP · +${m.reward.credits} cr</span>
+    ${done ? `<div class="mc-score" aria-label="${pts(m.score)} de 5.000 pontos"><i style="width:${Math.round((m.score || 0) / 50)}%"></i></div>` : ''}
+    <div class="mc-foot"><span class="mono small">${done ? (m.score >= 5000 ? 'perfeito' : 'dá para melhorar') : 'até 5.000 pts'}</span>
       ${done ? '' : locked ? ''
         : active ? `<button data-act="go" data-id="${m.id}" class="primary">Continuar</button>`
-        : `<button data-act="accept" data-id="${m.id}">Iniciar</button>`}
+        : `<button data-act="accept" data-id="${m.id}">Jogar</button>`}
+      ${done ? `<button data-act="accept" data-id="${m.id}" class="ghost">De novo</button>` : ''}
     </div>
   </article>`;
 }
@@ -362,11 +412,11 @@ function missionCard(m, active) {
 function renderStatus(s) {
   const pct = Math.min(100, Math.round(((s.xp - s.level_xp) / Math.max(1, s.next_level_xp - s.level_xp)) * 100));
   $('#cmd-status').innerHTML = `
-    <div class="ck"><span class="label">Indicativo</span><b class="mono cs">${esc(callsign(s.sat))}</b><span class="small muted">${esc(rankName(s.level))} · nível ${s.level}</span></div>
-    <div class="ck grow"><span class="label">Experiência de operação</span>
-      <div class="xpbar" role="progressbar" aria-label="Experiência até a próxima patente" aria-valuenow="${s.xp}" aria-valuemin="${s.level_xp}" aria-valuemax="${s.next_level_xp}"><i style="width:${pct}%"></i></div>
-      <span class="mono small muted">${s.xp} XP · faltam ${s.next_level_xp - s.xp} para ${esc(rankName(s.level + 1))}</span></div>
-    <div class="ck"><span class="label">Créditos de missão</span><b>${s.credits}</b></div>
+    <div class="ck"><span class="label">Você</span><b class="mono cs">${esc(callsign(s.sat))}</b><span class="small muted">${esc(rankName(s.level))} · nível ${s.level}</span></div>
+    <div class="ck grow"><span class="label">Pontos</span>
+      <div class="xpbar" role="progressbar" aria-label="Pontos até o próximo nível" aria-valuenow="${s.xp}" aria-valuemin="${s.level_xp}" aria-valuemax="${s.next_level_xp}"><i style="width:${pct}%"></i></div>
+      <span class="mono small muted">${pts(s.xp)} pts · faltam ${pts(s.next_level_xp - s.xp)} para ${esc(rankName(s.level + 1))}</span></div>
+    <div class="ck"><span class="label">Créditos</span><b>${s.credits}</b></div>
     <div class="ck"><span class="label">Insígnias</span><span class="badges">${s.badges.length ? s.badges.map((b) => `<span class="badge" title="${esc(BADGE[b]?.[1] || b)}">${esc(BADGE[b]?.[0] || b)}</span>`).join('') : '<span class="muted small">nenhuma ainda</span>'}</span></div>`;
 }
 
@@ -391,8 +441,8 @@ function renderComms() {
   const el = $('#cmd-comms');
   if (!el || $('#tab-missions').hidden) return;
   const l = log().slice(-14);
-  el.innerHTML = l.map((x) => `<div class="comms-msg ${x.from} ${x.tone || ''}"><span class="mono small">${x.from === 'central' ? 'CENTRAL' : esc(callsign())} · ${utc(x.ts)}</span><p>${esc(x.text)}</p></div>`).join('')
-    || '<p class="muted small">Canal em silêncio.</p>';
+  el.innerHTML = l.map((x) => `<div class="comms-msg ${x.from} ${x.tone || ''}"><span class="mono small">${x.from === 'central' ? 'BASE' : esc(callsign())} · ${utc(x.ts)}</span><p>${esc(x.text)}</p></div>`).join('')
+    || '<p class="muted small">Nada por aqui ainda.</p>';
   el.scrollTop = el.scrollHeight;
 }
 
@@ -401,44 +451,67 @@ function renderOrderBox(s) {
   if (!el) return;
   if (act) {
     const st = steps(act);
-    el.innerHTML = `<span class="label">Ativa · ${code(act)}</span><b>${esc(act.title)}</b>
+    el.innerHTML = `<span class="label">Agora · ${code(act)}</span><b>${esc(act.title)}</b>
       <ol class="mb-steps">${st.list.map((x) => `<li class="${x.ok ? 'ok' : ''}">${x.ok ? '✓' : '○'} ${esc(x.t)}</li>`).join('')}</ol>
       <div class="row"><button class="primary" data-act="go" data-id="${act.id}">Continuar</button>
-      <button class="ghost" data-act="abandon">Pausar</button></div>`;
+      <button class="ghost" data-act="abandon">Deixar para depois</button></div>`;
   } else {
     const nx = nextOrder();
     el.innerHTML = nx
       ? `<span class="label">Próxima · ${code(nx)}</span><b>${esc(nx.title)}</b><p class="small muted">${esc(nx.brief)}</p>
-         <div class="row"><button class="primary" data-act="accept" data-id="${nx.id}">Iniciar</button></div>`
-      : '<span class="label">Tudo cumprido</span>';
+         <div class="row"><button class="primary" data-act="accept" data-id="${nx.id}">Jogar</button></div>`
+      : '<span class="label">Campanha completa</span><p class="small muted">Jogue de novo para melhorar a pontuação.</p>';
   }
+}
+
+/** Os dois jeitos de jogar, no topo da página: partida rápida (Caça ao movimento) e campanha. */
+async function renderModes(s) {
+  const el = $('#game-modes');
+  if (!el) return;
+  const done = s.missions.filter((m) => m.status === 'done').length, act = G.activeMission(), nx = act || nextOrder();
+  let best = null;
+  try { best = (await fetch('api/hunt/leaderboard').then((r) => (r.ok ? r.json() : []))).find((x) => x.nickname === s.nickname); } catch { /* offline */ }
+  el.innerHTML = `
+    <article class="mode hunt">
+      <span class="mode-ico" aria-hidden="true">⚡</span>
+      <div><h3>Caça ao movimento</h3><p>As épocas piscam: ache o que se move ou muda de brilho. 5 rodadas, até 25.000 pontos.</p>
+        ${best ? `<p class="small mono">Seu recorde: ${pts(best.best)}</p>` : ''}</div>
+      <button class="primary big" data-act="hunt">Jogar</button>
+    </article>
+    <article class="mode camp">
+      <span class="mode-ico" aria-hidden="true">🛰️</span>
+      <div><h3>Campanha</h3><p>Meça estrelas que correm e objetos que piscam. ${done}/${s.missions.length} missões.</p>
+        <div class="mc-score"><i style="width:${(100 * done) / s.missions.length}%"></i></div></div>
+      ${nx ? `<button class="primary big" data-act="${act ? 'go' : 'accept'}" data-id="${nx.id}">${act ? 'Continuar' : 'Jogar'} ${esc(code(nx))}</button>` : ''}
+    </article>`;
 }
 
 function renderCentral() {
   const s = G.get();
   if (!s) return;
+  renderModes(s);
   renderStatus(s);
   $('#cmd-offline').hidden = !G.isOffline();
   welcome(s);
   renderComms(); renderOrderBox(s); renderTelemetry();
   $('#cmd-acts').innerHTML = s.acts.map((a) => {
     const ms = s.missions.filter((m) => m.act === a.act), n = ms.filter((m) => m.status === 'done').length;
-    return `<section class="act"><header><span class="label">Ato ${a.act}</span><h3>${esc(a.title)}</h3><span class="mono small muted">${n}/${ms.length}</span></header>
+    return `<section class="act"><header><span class="label">Capítulo ${a.act}</span><h3>${esc(a.title)}</h3><span class="mono small muted">${n}/${ms.length}</span></header>
       <div class="mgrid">${ms.map((m) => missionCard(m, m.id === s.active)).join('')}</div></section>`;
   }).join('');
   renderHangar();
   const done = s.missions.filter((m) => m.status === 'done').sort((a, b) => b.done_ts - a.done_ts);
-  $('#cmd-log').innerHTML = done.length ? `<table><tr><th>Ordem</th><th>Seu relatório</th><th>Catálogo</th></tr>${done.map((m) => `<tr>
+  $('#cmd-log').innerHTML = done.length ? `<table><tr><th>Missão</th><th>Sua medida</th><th>Pontos</th><th>Catálogo</th></tr>${done.map((m) => `<tr>
       <td><span class="mono small">${code(m)}</span> ${esc(m.title)}<br><span class="muted small">${new Date(m.done_ts * 1000).toLocaleDateString('pt-BR')}</span></td>
-      <td class="mono small">${answerText(m)}</td><td class="small">${esc(m.ref || '—')}</td></tr>`).join('')}</table>`
-    : '<p class="muted small">Nenhuma ordem cumprida ainda. O diário guarda o que você mediu ao lado do valor de catálogo.</p>';
+      <td class="mono small">${answerText(m)}</td><td class="mono small">${pts(m.score)}</td><td class="small">${esc(m.ref || '—')}</td></tr>`).join('')}</table>`
+    : '<p class="muted small">Aqui aparece o que você mediu ao lado do valor de catálogo.</p>';
 }
 
 /** Primeira transmissão: apresenta o canal e a primeira ordem (uma vez por jogador). */
 function welcome(s) {
   if (log().some((x) => x.tag === 'welcome')) return;
   const nx = nextOrder();
-  say(`${callsign(s.sat)}, aqui é a Central. Sinal recebido.${nx ? ` Primeira ordem: ${code(nx)} · ${nx.title}.` : ''}`, { tag: 'welcome' });
+  say(`Olá, ${callsign(s.sat)}! Cada missão vale até 5.000 pontos: quanto mais perto do valor de catálogo, mais pontos.${nx ? ` Comece pela ${code(nx)}: ${nx.title}.` : ''}`, { tag: 'welcome' });
 }
 
 function answerText(m) {
@@ -454,7 +527,7 @@ function renderHangar() {
   $('#hangar-preview').innerHTML = satelliteSVG(sat);
   $('#hangar-shop').innerHTML = s.shop.map((it) => {
     const owned = !it.cost || sat.owned.includes(it.id);
-    const lock = it.level && s.level < it.level ? `a patente ${rankName(it.level)}` : it.badge && !s.badges.includes(it.badge) ? 'a insígnia do ato 3' : null;
+    const lock = it.level && s.level < it.level ? `a patente ${rankName(it.level)}` : it.badge && !s.badges.includes(it.badge) ? 'a insígnia do capítulo 3' : null;
     let ctrl = '';
     if (lock) ctrl = `<span class="muted small">🔒 libera com ${lock}</span>`;
     else if (it.kind === 'text') ctrl = `<form class="shop-name" data-item="name"><input name="v" maxlength="20" value="${esc(sat.name)}" placeholder="${esc(callsign({}))}" aria-label="Nome do satélite (vira o indicativo)"><button>Registrar</button></form>`;
@@ -473,7 +546,7 @@ async function doAccept(id) {
   try {
     await G.accept(id);
     const m = G.activeMission();
-    say(`${code(m)} · ${m.title}. ${m.brief}`, { tag: `order-${m.id}`, replace: true });
+    say(`${code(m)}: ${m.brief}`, { tag: `order-${m.id}`, replace: true });
     goMission(m);
   } catch (e) { toast(esc(e.message), 'bad'); }
 }
@@ -489,12 +562,13 @@ function goMission(m) {
 async function onCentralClick(e) {
   const b = e.target.closest('button[data-act]');
   if (!b) return;
+  if (b.dataset.act === 'hunt') return ctx.playHunt?.();
   if (b.dataset.act === 'accept') return doAccept(b.dataset.id);
   if (b.dataset.act === 'go') return goMission(G.get().missions.find((m) => m.id === b.dataset.id));
   if (b.dataset.act === 'abandon') {
     const m = G.activeMission();
     await G.abandon();
-    if (m) say(`${code(m)} suspensa.`);
+    if (m) say(`${code(m)} fica para depois.`);
     renderCentral();
   }
 }
@@ -518,7 +592,7 @@ function onRegion(e) {
   const m = G.activeMission();
   if (m?.target && e.detail?.target === m.target) {
     const bandOk = !m.band || e.detail.band === m.band;
-    say(bandOk ? 'Alvo adquirido.' : `Alvo adquirido. Troque para ${m.band}.`, { tag: `acq-${m.id}-${e.detail.band}`, replace: true });
+    say(bandOk ? 'Chegou no alvo.' : `Chegou no alvo. Agora troque para ${m.band}.`, { tag: `acq-${m.id}-${e.detail.band}`, replace: true });
     // chegou no alvo certo, na banda certa: mede sozinho no centro (os alvos ficam centrados)
     const key = `${m.id}:${e.detail.band}`;
     if (bandOk && m.kind.startsWith('measure') && autoMeasured !== key) {
@@ -533,8 +607,8 @@ function onMeasure(e) {
   const m = G.activeMission(), d = e.detail;
   if (m && m.target && d.target === m.target && m.kind.startsWith('measure')) {
     const txt = m.kind === 'measure_motion'
-      ? (d.pm != null ? `Medida: ${num(d.pm)}″/ano · ${Math.round(d.pa)}°.` : 'Sem posição confiável aqui. Clique no centro do objeto.')
-      : (d.varPct != null ? `Medida: brilho variou ${Math.round(d.varPct)}%.` : 'Sem fotometria aqui. Clique no centro do objeto.');
+      ? (d.pm != null ? `Medido: ${num(d.pm)}″/ano rumo a ${Math.round(d.pa)}°.` : 'Não deu para medir aqui. Clique no centro do objeto.')
+      : (d.varPct != null ? `Medido: o brilho variou ${Math.round(d.varPct)}%.` : 'Não deu para medir aqui. Clique no centro do objeto.');
     say(txt, { tag: `meas-${m.id}`, replace: true });
   }
   renderBar();
@@ -578,11 +652,20 @@ export async function show() {
   renderCentral();
 }
 
+export async function renderHuntBoard(el) {
+  let rows = [];
+  try { rows = await fetch('api/hunt/leaderboard').then((r) => (r.ok ? r.json() : [])); } catch { /* offline */ }
+  el.innerHTML = rows.length
+    ? `<table><tr><th>#</th><th>Apelido</th><th>Recorde</th><th>Partidas</th></tr>${rows.map((r, i) => `<tr><td>${i + 1}</td><td>${esc(r.nickname)}</td><td class="mono">${pts(r.best)} <span class="muted small">/ ${pts(r.max)}</span></td><td>${r.games}</td></tr>`).join('')}</table>`
+    : '<p class="muted">Ninguém jogou ainda. <button class="ghost" data-hunt-play>Seja o primeiro</button></p>';
+  el.querySelector('[data-hunt-play]')?.addEventListener('click', () => ctx.playHunt?.());
+}
+
 export async function renderLeaderboard(el) {
   const rows = await G.leaderboard();
   el.innerHTML = rows.length
-    ? `<table><tr><th>#</th><th>Apelido</th><th>Patente</th><th>XP</th><th>Insígnias</th></tr>${rows.map((r, i) => `<tr><td>${i + 1}</td><td>${esc(r.nickname)}</td><td>${esc(rankName(r.level))}</td><td>${r.xp}</td><td>${r.badges.map((b) => esc(BADGE[b]?.[0] || b)).join(', ') || '—'}</td></tr>`).join('')}</table>`
-    : `<p class="muted">${G.isOffline() ? 'O ranking precisa do servidor.' : 'Ninguém cumpriu ordens ainda.'}</p>`;
+    ? `<table><tr><th>#</th><th>Apelido</th><th>Nível</th><th>Pontos</th><th>Insígnias</th></tr>${rows.map((r, i) => `<tr><td>${i + 1}</td><td>${esc(r.nickname)}</td><td>${esc(rankName(r.level))}</td><td>${pts(r.xp)}</td><td>${r.badges.map((b) => esc(BADGE[b]?.[0] || b)).join(', ') || '—'}</td></tr>`).join('')}</table>`
+    : `<p class="muted">${G.isOffline() ? 'O ranking precisa do servidor.' : 'Ninguém jogou ainda.'}</p>`;
 }
 
 export { renderBar };

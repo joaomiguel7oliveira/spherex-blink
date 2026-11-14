@@ -59,37 +59,32 @@ Não há login: o apelido fica no navegador e acompanha cada voto.
 
 ## Modo missões
 
-Aba **Missões** (`frontend/js/command.js`, `frontend/js/missions.js`, `backend/game.py`, missões em `data/missions.json`). Cada jogador opera um satélite fictício e recebe missões de uma Central de Comando. Tudo o que é inventado (satélite, peças, falas da Central, jogadores simulados) é rotulado como ilustrativo; as imagens e as medidas são sempre as do SPHEREx real, e o jogo nunca altera uma medida.
+Aba **Missões** (`frontend/js/command.js`, `frontend/js/hunt.js`, `frontend/js/missions.js`, `backend/game.py`, `backend/hunt.py`, missões em `data/missions.json`). A experiência pega emprestado o **estilo** de jogos como o GeoGuessr (rodadas curtas, até 5.000 pontos por rodada pela precisão, placar que conta na tela, resultado com a resposta certa ao lado da sua), mas as mecânicas são as do próprio projeto: piscar épocas e medir o céu. As imagens e as medidas são sempre as do SPHEREx real, e o jogo nunca altera uma medida. O que é inventado (satélite, Hangar, jogadores simulados) é rotulado como ilustrativo.
 
-**As ordens ficam no próprio ambiente.**
+A página abre com dois jeitos de jogar:
 
-- **No céu** (`frontend/js/skyorders.js`): cada ordem com lugar fixo é um marcador na posição real do alvo no panorama, com código, título e recompensa.
-  - Os marcadores mudam conforme a ordem: abertos em azul, a ordem ativa com uma mira dourada pulsando, as cumpridas com ✓ verde e as bloqueadas com 🔒.
-  - As ordens de patrulha ficam na região da fila.
-  - Clicar num marcador abre o cartão da ordem ali mesmo, ao lado do alvo, com os botões para confirmar, abrir as imagens ou transmitir.
-  - Com o alvo da ordem ativa fora da vista, uma seta na borda da tela aponta o caminho e mostra a distância em graus no céu. Clicar nela gira o céu até o alvo.
-- **No satélite** (globo em tela cheia e miniatura): um feixe dourado sai do seu satélite na direção do alvo da ordem ativa, com o código da ordem na ponta. A câmera abre de lado para o feixe aparecer inteiro. Quando a linha de visada cruza a Terra, o rótulo avisa "alvo atrás da Terra".
+**Caça ao movimento** (partida rápida, 5 rodadas, até 25.000 pontos).
 
-**Diegético.** Além disso, a interface do jogo fala de dentro do mundo, sem mudar o resto do site:
+- Cada rodada pisca as épocas de um recorte de 64 × 64 pixels (3,3′) de um alvo de exemplo. O enquadramento, a rotação e o espelhamento são sorteados, então o objeto nunca fica no centro nem no mesmo lugar. O sorteio só usa recortes com dado em pelo menos 97% da área.
+- A pergunta é "o que se move?" (Barnard, Epsilon Indi B, WISE 0855) ou "o que muda de brilho?" (R Draconis, RW Aurigae). Você clica no objeto e confirma.
+- Pontos: `5000 × exp(−0,693 × (d / t)²)`, com `d` a distância em segundos de arco e `t` a tolerância. `t` é 12″ para objetos pontuais e cresce com o tamanho da mancha das estrelas saturadas (Barnard ~25″, R Draconis ~36″), para que clicar na própria estrela valha.
+- Ferramentas: **Piscar** ou **Diferença** (última época menos a primeira, a mesma vista do modo Céu). Pista paga: mostrar o quarto da imagem onde está o objeto (−25%, contada no servidor).
+- Depois do clique aparecem a posição certa, a linha até o seu palpite, o nome do objeto e o que ele é. No fim, o total da partida e o ranking no Mural.
+- As imagens saem do servidor por um id de partida; a posição certa só volta depois do palpite.
 
-- Você tem um **indicativo de chamada**: o nome registrado no Hangar ou, sem nome, `SPX-` mais três letras do id da aba. **Subir de nível é uma promoção de patente:** Cadete, Operador júnior, Operador, Observador, Observador sênior, Navegador e Comandante de órbita.
-- O **canal com a Central** guarda as mensagens no navegador. Entram ali:
-  - a ordem confirmada;
-  - "alvo adquirido" (avisa se a banda está errada);
-  - "telemetria recebida" com a medida feita;
-  - o pacote que você transmitiu e a resposta;
-  - promoções, insígnias, requisições do Hangar e a próxima ordem sugerida.
-- As missões são **ordens** numeradas (OP-01 a OP-10). A ordem ativa aparece no modo Céu com a última fala da Central e uma lista de etapas que marca sozinha o que já está feito (alvo, banda, medida).
-- O relatório é **transmitido por downlink**, com uma animação curta que some com movimento reduzido. A cada falha, a Central manda uma dica mais específica (`hints` em `data/missions.json`).
-- A **telemetria** junta duas fontes. A órbita (700 km, polar) é ilustrativa e a passagem é contada pelo período de 98,6 min. O apontamento e a banda são os reais da tela.
+**Campanha** (Missão 1 a Missão 10, em 3 capítulos).
 
-- **3 atos, 10 missões.** Treinamento (abrir um exemplo, medir a Estrela de Barnard, medir o brilho de R Draconis), Objetos difíceis (Epsilon Indi B, WISE 0855 em duas partes, RW Aurigae) e Caça ao Planeta X (classificar 5 candidatos da fila, chegar a um consenso, marcar algo numa região nova). Um ato abre quando o anterior termina ou no nível 2 + ato.
-- **Como funciona.** Aceitar leva ao alvo, na banda da missão. Uma faixa no modo Céu mostra o objetivo e a dica. Ao clicar no objeto, a mesma medida mostrada na aba Medição vai para o relatório (evento `spx:measure`), já preenchida. A Central confere contra uma faixa de valores aceitos e explica o resultado com a referência do catálogo. Ex.: Barnard em D4 aceita 8,5 a 12″/ano rumo ao norte; 2″/ano volta "fora da faixa".
-- **Ato 3 nunca afirma descoberta.** Classificar e marcar dão XP por participação e por acerto nos controles; nada diz que alguém achou um planeta. Candidatos marcados ficam registrados para revisão, e ninguém confirmou nenhum.
-- **Progresso.** XP, nível (`floor(sqrt(xp/100)) + 1`), créditos e insígnias por ato. Fica no servidor (SQLite), ligado ao id aleatório da aba e ao apelido; sem servidor, roda inteiro no navegador com `localStorage`.
-- **Hangar.** Nome, cor do escudo, emblema, cor do rastro, painel extra (nível 3) e acabamento dourado (insígnia do ato 3). Cada peça é desbloqueada uma vez com créditos. As peças são só visuais: aparecem no Hangar e, a cor do rastro, no globo dos jogadores.
-- **Diário de bordo** com o que você mediu e o valor de referência de cada missão cumprida. **Ranking de XP** no Mural.
-- **API.** `GET /api/missions` (sem as faixas de resposta), `GET /api/player`, `POST /api/mission/accept`, `/abandon`, `/report` (até 10 por minuto), `POST /api/player/region`, `POST /api/player/satellite`, `GET /api/leaderboard`. `/api/online` passou a trazer nível, cor, emblema e missão ativa.
+- Capítulos: Treinamento (abrir um exemplo, medir a Estrela de Barnard, medir o brilho de R Draconis), Objetos difíceis (Epsilon Indi B, WISE 0855 em duas partes, RW Aurigae) e Caça ao Planeta X (classificar 5 candidatos da fila, chegar a um consenso, marcar algo numa região nova).
+- **Fluxo em um botão.** "Jogar" leva ao alvo na banda certa. A faixa no modo Céu mostra a missão e um único botão que muda sozinho: Ir até o alvo → Trocar de banda → Medir → Enviar 9,6″/ano. Ao chegar no alvo certo, a medida sai sozinha no centro do recorte.
+- **Pontos pela precisão.** A medida fora da faixa aceita não conclui a missão (mostra o que errou e uma dica que fica mais específica a cada tentativa). Dentro da faixa, vale de 2.500 a 5.000: mais perto do centro da faixa, mais pontos. Ex.: Barnard em D4 aceita 8,5 a 12″/ano rumo ao norte; 9,6″/ano a 1° dá 4.768.
+- **Tela de resultado** a cada envio: pontos contando até o valor, barra até 5.000 e uma figura com a sua medida e a esperada (bússola para movimento, régua para brilho). A seta dourada é o centro da faixa aceita, não o valor de catálogo; o valor de catálogo vem escrito logo abaixo.
+- **Jogar de novo vale a pena.** Repetir uma missão já feita soma a diferença quando você melhora o seu recorde.
+- **O capítulo 3 nunca afirma descoberta.** Classificar e marcar dão pontos por participação e por acerto nos controles. Candidatos marcados ficam registrados para revisão, e ninguém confirmou nenhum.
+- **No ambiente.** As missões com lugar fixo aparecem como marcadores no próprio céu (`frontend/js/skyorders.js`), e uma seta na borda aponta o alvo da missão atual. No globo, um feixe sai do seu satélite (ilustrativo) na direção do alvo, com "Missão N" na ponta.
+
+**Progresso.** Pontos, nível (`floor(sqrt(pontos / 2500)) + 1`, com nomes de Cadete a Comandante de órbita), créditos e insígnias por capítulo. Fica no servidor (SQLite), ligado ao id aleatório do navegador e ao apelido; sem servidor, a campanha roda no navegador com `localStorage` (sem a Caça ao movimento). O **Hangar** personaliza o satélite ilustrativo com créditos. O **Diário** guarda o que você mediu, os pontos e o valor de catálogo.
+
+**API.** Campanha: `GET /api/missions` (sem as faixas de resposta), `GET /api/player`, `POST /api/mission/accept`, `/abandon`, `/report` (até 10 por minuto), `POST /api/player/region`, `POST /api/player/satellite`, `GET /api/leaderboard`. Caça ao movimento: `POST /api/hunt/new`, `/hint`, `/guess`, `GET /api/hunt/img/{partida}/{rodada}/{época}` (a época seguinte à última é a Diferença), `GET /api/hunt/leaderboard`.
 
 ## Resultados medidos nos alvos de teste
 
